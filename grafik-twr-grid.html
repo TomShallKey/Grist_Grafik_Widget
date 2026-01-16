@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grafik TWR - Grid</title>
+  <title>Grafik TWR</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     :root {
@@ -13,762 +13,432 @@
       --text-primary: #1e293b;
       --text-secondary: #64748b;
       --text-muted: #94a3b8;
-      
-      /* Kolory stanowisk */
       --twr1-color: #3b82f6;
-      --twr2-color: #8b5cf6;
-      --twr3-color: #06b6d4;
-      --twr4-color: #10b981;
-      --twr5-color: #f59e0b;
-      --twr6-color: #ef4444;
-      
       --accent-green: #22c55e;
       --accent-red: #ef4444;
       --accent-orange: #f97316;
-      
-      --header-height: 50px;
       --row-label-width: 80px;
-      --cell-min-height: 90px;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
       line-height: 1.4;
-      min-height: 100vh;
     }
 
-    /* Header Controls */
     .controls {
       position: sticky;
       top: 0;
       z-index: 100;
       background: var(--bg-card);
       border-bottom: 1px solid var(--border-color);
-      padding: 12px 16px;
+      padding: 10px 16px;
       display: flex;
       gap: 12px;
       align-items: center;
       flex-wrap: wrap;
     }
-
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .control-label {
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
-    select, input[type="date"] {
-      padding: 6px 10px;
+    .control-group { display: flex; align-items: center; gap: 6px; }
+    .control-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    select {
+      padding: 5px 8px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      font-size: 13px;
-      background: var(--bg-card);
-      color: var(--text-primary);
-    }
-
-    select:focus, input:focus {
-      outline: none;
-      border-color: var(--twr1-color);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    .stats {
-      margin-left: auto;
-      display: flex;
-      gap: 16px;
       font-size: 12px;
+      background: #fff;
     }
-
-    .stat {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .stat-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
+    .stats { margin-left: auto; display: flex; gap: 14px; font-size: 11px; }
+    .stat { display: flex; align-items: center; gap: 4px; }
+    .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
     .stat-dot.total { background: var(--twr1-color); }
     .stat-dot.warning { background: var(--accent-orange); }
     .stat-dot.error { background: var(--accent-red); }
 
-    /* Grid Container */
-    .grid-wrapper {
-      padding: 16px;
-      overflow-x: auto;
-    }
-
+    .grid-wrapper { padding: 12px; overflow-x: auto; }
     .schedule-grid {
       display: grid;
-      grid-template-columns: var(--row-label-width) repeat(6, minmax(180px, 1fr));
+      grid-template-columns: var(--row-label-width) repeat(6, minmax(200px, 1fr));
       gap: 1px;
       background: var(--border-color);
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
-
-    /* Header Row */
-    .grid-header {
-      display: contents;
-    }
-
+    .grid-header { display: contents; }
     .header-cell {
       background: linear-gradient(135deg, #1e293b, #334155);
       color: white;
-      padding: 14px 12px;
+      padding: 12px 8px;
       text-align: center;
       font-weight: 600;
-      font-size: 13px;
-    }
-
-    .header-cell.corner {
-      background: #0f172a;
-    }
-
-    .header-cell .station-name {
-      font-size: 14px;
-    }
-
-    .header-cell .station-sub {
-      font-size: 10px;
-      opacity: 0.7;
-      margin-top: 2px;
-    }
-
-    /* Day Row Header */
-    .day-header {
-      grid-column: 1 / -1;
-      background: linear-gradient(90deg, #f8fafc, #f1f5f9);
-      padding: 10px 16px;
-      font-weight: 600;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-top: 2px solid var(--border-color);
-    }
-
-    .day-header:first-of-type {
-      border-top: none;
-    }
-
-    .day-name {
-      color: var(--text-primary);
-    }
-
-    .day-date {
-      color: var(--text-secondary);
-      font-weight: 400;
       font-size: 12px;
     }
+    .header-cell.corner { background: #0f172a; font-size: 11px; }
 
-    .day-stats {
-      margin-left: auto;
-      font-size: 11px;
-      color: var(--text-muted);
+    .day-header {
+      grid-column: 1 / -1;
+      background: linear-gradient(90deg, #e0e7ff, #eef2ff);
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-top: 2px solid #c7d2fe;
     }
+    .day-name { color: #3730a3; }
+    .day-date { color: var(--text-secondary); font-weight: 400; font-size: 11px; }
+    .day-stats { margin-left: auto; font-size: 10px; color: var(--text-muted); }
 
-    /* Time Slot Label */
     .slot-label {
       background: #f8fafc;
-      padding: 8px;
+      padding: 6px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       border-right: 2px solid var(--border-color);
     }
-
-    .slot-time {
-      font-weight: 600;
-      font-size: 13px;
-      color: var(--text-primary);
+    .slot-label.second-shift { background: #e2e8f0; }
+    .slot-time { font-weight: 600; font-size: 12px; }
+    .slot-time-end { font-size: 9px; color: var(--text-muted); }
+    .shift-badge {
+      font-size: 8px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-top: 3px;
+      background: #dbeafe;
+      color: #1e40af;
     }
+    .shift-badge.second { background: #94a3b8; color: white; }
 
-    .slot-time-end {
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-
-    /* Grid Cell */
     .grid-cell {
       background: var(--bg-card);
-      min-height: var(--cell-min-height);
-      padding: 6px;
-      position: relative;
+      min-height: 140px;
+      padding: 4px;
     }
-
-    .grid-cell:hover {
-      background: #f8fafc;
-    }
-
+    .grid-cell.second-shift { background: #f1f5f9; }
     .grid-cell.empty {
-      background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 10px,
-        #f8fafc 10px,
-        #f8fafc 20px
-      );
+      background: repeating-linear-gradient(45deg, transparent, transparent 8px, #f1f5f9 8px, #f1f5f9 16px);
+    }
+    .grid-cell.empty.second-shift {
+      background: repeating-linear-gradient(45deg, #e2e8f0, #e2e8f0 8px, #cbd5e1 8px, #cbd5e1 16px);
     }
 
-    /* Session Card */
     .session-card {
       background: var(--bg-card);
       border-radius: 8px;
       padding: 10px;
       height: 100%;
-      min-height: 78px;
       cursor: pointer;
-      transition: all 0.2s ease;
-      position: relative;
-      border-left: 4px solid var(--card-color, var(--twr1-color));
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      transition: all 0.15s ease;
+      border-left: 4px solid var(--twr1-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
-
     .session-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 10;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
-
-    .session-card.selected {
-      ring: 2px solid var(--twr1-color);
-      box-shadow: 0 0 0 2px var(--twr1-color);
+    .session-card.second-shift {
+      background: #f1f5f9;
+      border-left-color: #64748b;
     }
-
-    /* Card color variants based on station */
-    .session-card[data-station="1"] { --card-color: var(--twr1-color); }
-    .session-card[data-station="2"] { --card-color: var(--twr2-color); }
-    .session-card[data-station="3"] { --card-color: var(--twr3-color); }
-    .session-card[data-station="4"] { --card-color: var(--twr4-color); }
-    .session-card[data-station="5"] { --card-color: var(--twr5-color); }
-    .session-card[data-station="6"] { --card-color: var(--twr6-color); }
-
-    /* Warning/Error states */
     .session-card.has-warning {
-      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      background: #fffbeb;
+      border-left-color: var(--accent-orange);
     }
-
     .session-card.has-error {
-      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      background: #fef2f2;
       border-left-color: var(--accent-red);
     }
 
-    .session-card.has-duplicate {
-      background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-      border-left-color: var(--twr2-color);
-    }
-
-    /* Card Content */
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 6px;
+      gap: 6px;
     }
-
-    .trainee-info {
-      flex: 1;
+    .card-badges { display: flex; gap: 3px; flex-shrink: 0; flex-wrap: wrap; }
+    .badge {
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: 600;
     }
+    .badge.warning { background: var(--accent-orange); color: white; }
+    .badge.error { background: var(--accent-red); color: white; }
+    .badge.has-b { background: #8b5cf6; color: white; }
+    .badge.shift2 { background: #64748b; color: white; }
 
+    .trainee-section {
+      background: #f0f9ff;
+      border-radius: 6px;
+      padding: 8px;
+    }
+    .trainee-section.trainee-b {
+      background: #faf5ff;
+      margin-top: 4px;
+    }
+    .trainee-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 3px;
+    }
     .trainee-name {
       font-weight: 600;
       font-size: 12px;
       color: var(--text-primary);
-      line-height: 1.2;
+      word-break: break-word;
     }
-
-    .trainee-phase {
-      font-size: 10px;
-      color: var(--text-secondary);
-      margin-top: 1px;
-    }
-
-    .card-badges {
-      display: flex;
-      gap: 3px;
-      flex-shrink: 0;
-    }
-
-    .badge {
-      width: 16px;
-      height: 16px;
-      border-radius: 4px;
+    .trainee-exercise {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 9px;
+      gap: 6px;
+      margin-top: 4px;
     }
-
-    .badge.warning {
-      background: var(--accent-orange);
-      color: white;
-    }
-
-    .badge.error {
-      background: var(--accent-red);
-      color: white;
-    }
-
-    .badge.duplicate {
-      background: var(--twr2-color);
-      color: white;
-    }
-
-    .badge.has-b {
-      background: var(--twr3-color);
-      color: white;
-    }
-
-    /* Card Details */
-    .card-details {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 6px;
-    }
-
-    .detail-tag {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: #f1f5f9;
-      color: var(--text-secondary);
-    }
-
-    .detail-tag.exercise {
+    .exercise-num {
       background: #dbeafe;
       color: #1e40af;
-      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .exercise-progress {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .progress-bar {
+      flex: 1;
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent-green);
+      border-radius: 2px;
     }
 
-    .detail-tag.progress {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .detail-tag.instructor {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    /* Trainee B section in card */
-    .trainee-b-section {
-      margin-top: 8px;
+    .instructors-section {
+      margin-top: auto;
       padding-top: 6px;
       border-top: 1px dashed var(--border-color);
     }
-
-    .trainee-b-label {
+    .instructors-label {
       font-size: 9px;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .instructors-list {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.3;
+    }
+    .instructor-chip {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+      margin: 1px 2px 1px 0;
     }
 
-    /* Progress Bar */
-    .progress-bar {
-      height: 3px;
-      background: #e2e8f0;
-      border-radius: 2px;
-      margin-top: 6px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--card-color, var(--accent-green));
-      border-radius: 2px;
-      transition: width 0.3s ease;
-    }
-
-    /* Detail Panel (Slide-out) */
     .detail-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.3);
       opacity: 0;
       visibility: hidden;
-      transition: all 0.3s ease;
+      transition: all 0.3s;
       z-index: 999;
     }
-
-    .detail-overlay.open {
-      opacity: 1;
-      visibility: visible;
-    }
-
+    .detail-overlay.open { opacity: 1; visibility: visible; }
     .detail-panel {
       position: fixed;
       top: 0;
-      right: -420px;
-      width: 420px;
+      right: -400px;
+      width: 400px;
       height: 100vh;
       background: var(--bg-card);
-      box-shadow: -4px 0 24px rgba(0,0,0,0.15);
-      transition: right 0.3s ease;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+      transition: right 0.3s;
       z-index: 1000;
       display: flex;
       flex-direction: column;
     }
-
-    .detail-panel.open {
-      right: 0;
-    }
-
+    .detail-panel.open { right: 0; }
     .panel-header {
-      padding: 20px;
-      background: linear-gradient(135deg, var(--panel-color, var(--twr1-color)), color-mix(in srgb, var(--panel-color, var(--twr1-color)) 70%, white));
+      padding: 16px;
+      background: linear-gradient(135deg, var(--twr1-color), #60a5fa);
       color: white;
       position: relative;
     }
-
     .panel-close {
       position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 32px;
-      height: 32px;
+      top: 12px; right: 12px;
+      width: 28px; height: 28px;
       border: none;
       background: rgba(255,255,255,0.2);
       color: white;
       border-radius: 50%;
       cursor: pointer;
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
+      font-size: 16px;
     }
-
-    .panel-close:hover {
-      background: rgba(255,255,255,0.3);
-    }
-
-    .panel-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .panel-subtitle {
-      font-size: 13px;
-      opacity: 0.9;
-    }
-
-    .panel-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-    }
-
-    .panel-section {
-      margin-bottom: 20px;
-    }
-
+    .panel-title { font-size: 16px; font-weight: 600; }
+    .panel-subtitle { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+    .panel-content { flex: 1; overflow-y: auto; padding: 16px; }
+    .panel-section { margin-bottom: 16px; }
     .panel-section-title {
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       font-weight: 600;
     }
-
     .panel-row {
       display: flex;
       justify-content: space-between;
-      padding: 10px 0;
+      padding: 8px 0;
       border-bottom: 1px solid #f1f5f9;
-    }
-
-    .panel-row:last-child {
-      border-bottom: none;
-    }
-
-    .panel-label {
-      color: var(--text-secondary);
       font-size: 13px;
     }
-
-    .panel-value {
-      font-weight: 500;
-      font-size: 13px;
-      text-align: right;
-    }
-
-    .panel-value.warning {
-      color: var(--accent-orange);
-    }
-
-    .panel-value.error {
-      color: var(--accent-red);
-    }
-
-    .panel-value.success {
-      color: var(--accent-green);
-    }
-
+    .panel-label { color: var(--text-secondary); }
+    .panel-value { font-weight: 500; text-align: right; }
+    .panel-value.error { color: var(--accent-red); }
+    .panel-value.warning { color: var(--accent-orange); }
     .panel-footer {
-      padding: 16px 20px;
+      padding: 12px 16px;
       border-top: 1px solid var(--border-color);
       display: flex;
-      gap: 12px;
+      gap: 10px;
     }
-
     .btn {
       flex: 1;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
       border: none;
     }
+    .btn-primary { background: var(--twr1-color); color: white; }
+    .btn-secondary { background: #f1f5f9; color: var(--text-primary); }
 
-    .btn-primary {
-      background: var(--twr1-color);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #2563eb;
-    }
-
-    .btn-secondary {
-      background: #f1f5f9;
-      color: var(--text-primary);
-    }
-
-    .btn-secondary:hover {
-      background: #e2e8f0;
-    }
-
-    /* Empty State */
     .empty-state {
       grid-column: 1 / -1;
-      padding: 60px 20px;
+      padding: 50px 20px;
       text-align: center;
       background: var(--bg-card);
     }
-
-    .empty-state svg {
-      width: 48px;
-      height: 48px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-    }
-
-    .empty-state h3 {
-      font-size: 16px;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-    }
-
-    .empty-state p {
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-
-    /* Loading State */
+    .empty-state h3 { font-size: 15px; margin-bottom: 4px; }
+    .empty-state p { font-size: 12px; color: var(--text-secondary); }
     .loading {
       grid-column: 1 / -1;
-      padding: 60px;
+      padding: 50px;
       text-align: center;
       background: var(--bg-card);
     }
-
     .spinner {
-      width: 32px;
-      height: 32px;
+      width: 28px; height: 28px;
       border: 3px solid #e2e8f0;
       border-top-color: var(--twr1-color);
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 10px;
     }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Responsive */
-    @media (max-width: 1200px) {
-      .schedule-grid {
-        grid-template-columns: var(--row-label-width) repeat(6, minmax(140px, 1fr));
-      }
-    }
-
-    @media (max-width: 768px) {
-      .detail-panel {
-        width: 100%;
-        right: -100%;
-      }
-      
-      .controls {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      
-      .stats {
-        margin-left: 0;
-        justify-content: center;
-      }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="controls">
     <div class="control-group">
       <span class="control-label">Tydzień:</span>
-      <select id="week-filter" onchange="applyFilters()">
-        <option value="">Wszystkie</option>
-      </select>
+      <select id="week-filter" onchange="applyFilters()"><option value="">Wszystkie</option></select>
     </div>
-    
     <div class="control-group">
       <span class="control-label">Dzień:</span>
-      <select id="day-filter" onchange="applyFilters()">
-        <option value="">Wszystkie</option>
-      </select>
+      <select id="day-filter" onchange="applyFilters()"><option value="">Wszystkie</option></select>
     </div>
-    
     <div class="control-group">
       <span class="control-label">Trainee:</span>
-      <select id="trainee-filter" onchange="applyFilters()">
-        <option value="">Wszyscy</option>
-      </select>
+      <select id="trainee-filter" onchange="applyFilters()"><option value="">Wszyscy</option></select>
     </div>
-    
     <div class="stats">
-      <div class="stat">
-        <span class="stat-dot total"></span>
-        <span id="stat-total">0</span> sesji
-      </div>
-      <div class="stat">
-        <span class="stat-dot warning"></span>
-        <span id="stat-warnings">0</span> ostrzeżeń
-      </div>
-      <div class="stat">
-        <span class="stat-dot error"></span>
-        <span id="stat-errors">0</span> naruszeń
-      </div>
+      <div class="stat"><span class="stat-dot total"></span><span id="stat-total">0</span> sesji</div>
+      <div class="stat"><span class="stat-dot warning"></span><span id="stat-warnings">0</span> ostrzeżeń</div>
+      <div class="stat"><span class="stat-dot error"></span><span id="stat-errors">0</span> błędów</div>
     </div>
   </div>
 
   <div class="grid-wrapper">
     <div class="schedule-grid" id="schedule-grid">
-      <div class="loading">
-        <div class="spinner"></div>
-        <p style="margin-top: 12px; color: var(--text-secondary);">Ładowanie danych...</p>
-      </div>
+      <div class="loading"><div class="spinner"></div><p>Ładowanie...</p></div>
     </div>
   </div>
 
   <div class="detail-overlay" id="detail-overlay" onclick="closePanel()"></div>
-  
   <div class="detail-panel" id="detail-panel">
     <button class="panel-close" onclick="closePanel()">×</button>
-    <div class="panel-header" id="panel-header">
-      <div class="panel-title" id="panel-title">Szczegóły sesji</div>
+    <div class="panel-header">
+      <div class="panel-title" id="panel-title">Szczegóły</div>
       <div class="panel-subtitle" id="panel-subtitle"></div>
     </div>
     <div class="panel-content" id="panel-content"></div>
     <div class="panel-footer">
       <button class="btn btn-secondary" onclick="closePanel()">Zamknij</button>
-      <button class="btn btn-primary" onclick="goToRecord()">Edytuj w tabeli</button>
+      <button class="btn btn-primary" onclick="goToRecord()">Edytuj</button>
     </div>
   </div>
 
   <script>
-    // ============== CONFIG ==============
     const STATIONS = [
-      { id: 1, name: 'TWR 1', color: '#3b82f6' },
-      { id: 2, name: 'TWR 2', color: '#8b5cf6' },
-      { id: 3, name: 'TWR 3', color: '#06b6d4' },
-      { id: 4, name: 'TWR 4', color: '#10b981' },
-      { id: 5, name: 'TWR 5', color: '#f59e0b' },
-      { id: 6, name: 'TWR 6', color: '#ef4444' }
+      { id: 1, name: 'TWR 1' },
+      { id: 2, name: 'TWR 2' },
+      { id: 3, name: 'TWR 3' },
+      { id: 4, name: 'TWR 4' },
+      { id: 5, name: 'TWR 5' },
+      { id: 6, name: 'TWR 6' }
     ];
+    const SECOND_SHIFT_START = '15:15';
 
-    // ============== STATE ==============
     let allRecords = [];
     let filteredRecords = [];
     let selectedRecord = null;
-    let slots = [];
     let weeks = new Set();
     let days = new Set();
     let trainees = new Map();
 
-    // ============== GRIST INIT ==============
-    grist.ready({
-      requiredAccess: 'full',
-      columns: [
-        { name: 'Data', title: 'Data' },
-        { name: 'Data_DzienPL', title: 'Dzień PL' },
-        { name: 'Data_Tydzien', title: 'Tydzień' },
-        { name: 'Slot', title: 'Slot' },
-        { name: 'Slot_Godz_od', title: 'Godz. od' },
-        { name: 'Slot_Godz_do', title: 'Godz. do' },
-        { name: 'TWR1_TraineeA', title: 'Trainee A' },
-        { name: 'TWR1_TraineeB', title: 'Trainee B' },
-        { name: 'TWR1_Instr', title: 'Instruktorzy' },
-        { name: 'TWR_Kat', title: 'Kategoria' },
-        { name: 'C', title: 'C (wspólna)' },
-        { name: 'exNrA', title: 'Nr ćw. A' },
-        { name: 'exNrB', title: 'Nr ćw. B' },
-        { name: 'TWR1_Trainee1_Wymagane', title: 'Wymagane' },
-        { name: 'TraineeDuplikaty', title: 'Duplikaty' },
-        { name: 'TraineeA_Narusza8h', title: 'Narusza 8h A' },
-        { name: 'TraineeB_Narusza8h', title: 'Narusza 8h B' }
-      ]
-    });
+    grist.ready({ requiredAccess: 'full' });
 
-    grist.onRecords(function(records, mappings) {
-      console.log('Received records:', records.length);
+    grist.onRecords(function(records) {
       allRecords = records.map(normalizeRecord);
       processData();
       applyFilters();
-      render();
     });
 
-    // ============== DATA PROCESSING ==============
     function normalizeRecord(rec) {
       return {
         id: rec.id,
-        data: rec.Data,
         dzienPL: rec.Data_DzienPL || '',
         tydzien: rec.Data_Tydzien || '',
-        slot: rec.Slot,
         godzOd: rec.Slot_Godz_od || '',
         godzDo: rec.Slot_Godz_do || '',
         traineeA: rec.TWR1_TraineeA,
+        traineeA_nazwa: rec.TraineeA_Nazwa || '',
         traineeB: rec.TWR1_TraineeB,
-        instruktorzy: rec.TWR1_Instr || [],
-        kategoria: rec.TWR_Kat,
+        traineeB_nazwa: rec.TraineeB_Nazwa || '',
+        instr_lista: rec.Instr_Lista || '',
         c: rec.C || false,
         exNrA: rec.exNrA,
         exNrB: rec.exNrB,
@@ -776,378 +446,179 @@
         duplikaty: rec.TraineeDuplikaty || false,
         narusza8hA: rec.TraineeA_Narusza8h || false,
         narusza8hB: rec.TraineeB_Narusza8h || false,
-        // Placeholder - w przyszłości można dodać pole stanowisko
         station: 1
       };
     }
 
-    function processData() {
-      weeks.clear();
-      days.clear();
-      trainees.clear();
-      const slotSet = new Set();
+    function isSecondShift(t) { return t && t >= SECOND_SHIFT_START; }
 
+    function processData() {
+      weeks.clear(); days.clear(); trainees.clear();
       allRecords.forEach(r => {
         if (r.tydzien) weeks.add(r.tydzien);
         if (r.dzienPL) days.add(r.dzienPL);
-        if (r.godzOd) slotSet.add(r.godzOd);
-        if (r.traineeA) {
-          trainees.set(r.traineeA, `Trainee #${r.traineeA}`);
-        }
-        if (r.traineeB) {
-          trainees.set(r.traineeB, `Trainee #${r.traineeB}`);
-        }
+        if (r.traineeA) trainees.set(r.traineeA, r.traineeA_nazwa || `#${r.traineeA}`);
+        if (r.traineeB) trainees.set(r.traineeB, r.traineeB_nazwa || `#${r.traineeB}`);
       });
-
-      // Sort slots by time
-      slots = Array.from(slotSet).sort();
-
       updateFilterOptions();
     }
 
     function updateFilterOptions() {
-      // Weeks
-      const weekSelect = document.getElementById('week-filter');
-      const currentWeek = weekSelect.value;
-      weekSelect.innerHTML = '<option value="">Wszystkie</option>';
-      Array.from(weeks).sort().forEach(w => {
-        weekSelect.innerHTML += `<option value="${w}" ${w === currentWeek ? 'selected' : ''}>Tydz. ${w}</option>`;
-      });
+      const wSel = document.getElementById('week-filter'), wVal = wSel.value;
+      wSel.innerHTML = '<option value="">Wszystkie</option>';
+      [...weeks].sort().forEach(w => wSel.innerHTML += `<option value="${w}" ${w===wVal?'selected':''}>${w}</option>`);
 
-      // Days
-      const daySelect = document.getElementById('day-filter');
-      const currentDay = daySelect.value;
-      daySelect.innerHTML = '<option value="">Wszystkie</option>';
-      const dayOrder = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
-      Array.from(days).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b)).forEach(d => {
-        daySelect.innerHTML += `<option value="${d}" ${d === currentDay ? 'selected' : ''}>${d}</option>`;
-      });
+      const dSel = document.getElementById('day-filter'), dVal = dSel.value;
+      const dayOrd = ['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+      dSel.innerHTML = '<option value="">Wszystkie</option>';
+      [...days].sort((a,b)=>dayOrd.indexOf(a)-dayOrd.indexOf(b)).forEach(d => dSel.innerHTML += `<option value="${d}" ${d===dVal?'selected':''}>${d}</option>`);
 
-      // Trainees
-      const traineeSelect = document.getElementById('trainee-filter');
-      const currentTrainee = traineeSelect.value;
-      traineeSelect.innerHTML = '<option value="">Wszyscy</option>';
-      Array.from(trainees.entries())
-        .sort((a, b) => a[0] - b[0])
-        .forEach(([id, name]) => {
-          traineeSelect.innerHTML += `<option value="${id}" ${String(id) === currentTrainee ? 'selected' : ''}>${name}</option>`;
-        });
+      const tSel = document.getElementById('trainee-filter'), tVal = tSel.value;
+      tSel.innerHTML = '<option value="">Wszyscy</option>';
+      [...trainees.entries()].sort((a,b)=>a[0]-b[0]).forEach(([id,n]) => tSel.innerHTML += `<option value="${id}" ${String(id)===tVal?'selected':''}>${n}</option>`);
     }
 
     function applyFilters() {
-      const weekFilter = document.getElementById('week-filter').value;
-      const dayFilter = document.getElementById('day-filter').value;
-      const traineeFilter = document.getElementById('trainee-filter').value;
-
+      const wF = document.getElementById('week-filter').value;
+      const dF = document.getElementById('day-filter').value;
+      const tF = document.getElementById('trainee-filter').value;
       filteredRecords = allRecords.filter(r => {
-        if (weekFilter && r.tydzien !== weekFilter) return false;
-        if (dayFilter && r.dzienPL !== dayFilter) return false;
-        if (traineeFilter) {
-          const tid = parseInt(traineeFilter);
-          if (r.traineeA !== tid && r.traineeB !== tid) return false;
-        }
+        if (wF && r.tydzien !== wF) return false;
+        if (dF && r.dzienPL !== dF) return false;
+        if (tF) { const t = parseInt(tF); if (r.traineeA !== t && r.traineeB !== t) return false; }
         return true;
       });
-
-      updateStats();
+      document.getElementById('stat-total').textContent = filteredRecords.length;
+      document.getElementById('stat-warnings').textContent = filteredRecords.filter(r=>r.duplikaty).length;
+      document.getElementById('stat-errors').textContent = filteredRecords.filter(r=>r.narusza8hA||r.narusza8hB).length;
       render();
     }
 
-    function updateStats() {
-      document.getElementById('stat-total').textContent = filteredRecords.length;
-      document.getElementById('stat-warnings').textContent = 
-        filteredRecords.filter(r => r.duplikaty).length;
-      document.getElementById('stat-errors').textContent = 
-        filteredRecords.filter(r => r.narusza8hA || r.narusza8hB).length;
-    }
-
-    // ============== RENDERING ==============
     function render() {
       const grid = document.getElementById('schedule-grid');
-
-      if (filteredRecords.length === 0) {
-        grid.innerHTML = `
-          <div class="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <h3>Brak sesji do wyświetlenia</h3>
-            <p>Zmień filtry lub dodaj nowe sesje w tabeli GRAFIK</p>
-          </div>
-        `;
+      if (!filteredRecords.length) {
+        grid.innerHTML = '<div class="empty-state"><h3>Brak sesji</h3><p>Zmień filtry lub dodaj dane</p></div>';
         return;
       }
 
-      // Group by day + slot
-      const grouped = groupByDayAndSlot(filteredRecords);
+      let html = '<div class="grid-header"><div class="header-cell corner">Slot</div>';
+      STATIONS.forEach(s => html += `<div class="header-cell">${s.name}</div>`);
+      html += '</div>';
 
-      let html = renderHeader();
+      const dayOrd = ['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+      const uDays = [...new Set(filteredRecords.map(r=>r.dzienPL))].filter(Boolean).sort((a,b)=>dayOrd.indexOf(a)-dayOrd.indexOf(b));
 
-      // Get unique days in order
-      const dayOrder = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
-      const uniqueDays = [...new Set(filteredRecords.map(r => r.dzienPL))]
-        .filter(Boolean)
-        .sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+      uDays.forEach(day => {
+        const dRecs = filteredRecords.filter(r=>r.dzienPL===day);
+        const wk = dRecs[0]?.tydzien || '';
+        html += `<div class="day-header"><span class="day-name">${day}</span><span class="day-date">Tydz. ${wk}</span><span class="day-stats">${dRecs.length} sesji</span></div>`;
 
-      uniqueDays.forEach(day => {
-        const dayRecords = filteredRecords.filter(r => r.dzienPL === day);
-        const dayWeek = dayRecords[0]?.tydzien || '';
-        
-        // Day header
-        html += `
-          <div class="day-header">
-            <span class="day-name">${day}</span>
-            <span class="day-date">Tydzień ${dayWeek}</span>
-            <span class="day-stats">${dayRecords.length} sesji</span>
-          </div>
-        `;
+        const slots = [...new Set(dRecs.map(r=>r.godzOd))].filter(Boolean).sort();
+        slots.forEach(slot => {
+          const sr = dRecs.find(r=>r.godzOd===slot);
+          const s2 = isSecondShift(slot);
+          const sc = s2 ? 'second-shift' : '';
 
-        // Get unique slots for this day
-        const daySlots = [...new Set(dayRecords.map(r => r.godzOd))].filter(Boolean).sort();
+          html += `<div class="slot-label ${sc}"><span class="slot-time">${slot}</span><span class="slot-time-end">${sr?.godzDo||''}</span><span class="shift-badge ${s2?'second':''}">${s2?'II':'I'}</span></div>`;
 
-        daySlots.forEach(slot => {
-          const slotRecord = dayRecords.find(r => r.godzOd === slot);
-          const godzDo = slotRecord?.godzDo || '';
-
-          // Slot label
-          html += `
-            <div class="slot-label">
-              <span class="slot-time">${slot}</span>
-              <span class="slot-time-end">${godzDo}</span>
-            </div>
-          `;
-
-          // Cells for each station
-          STATIONS.forEach((station, idx) => {
-            const cellRecords = dayRecords.filter(r => 
-              r.godzOd === slot && getStationForRecord(r) === station.id
-            );
-
-            if (cellRecords.length > 0) {
-              html += renderCell(cellRecords[0], station);
-            } else {
-              html += `<div class="grid-cell empty"></div>`;
-            }
+          STATIONS.forEach(st => {
+            const cell = dRecs.filter(r=>r.godzOd===slot && (r.station||1)===st.id);
+            html += cell.length ? renderCard(cell[0], s2) : `<div class="grid-cell empty ${sc}"></div>`;
           });
         });
       });
-
       grid.innerHTML = html;
     }
 
-    function renderHeader() {
-      let html = `
-        <div class="grid-header">
-          <div class="header-cell corner">Slot</div>
-      `;
-      
-      STATIONS.forEach(s => {
-        html += `
-          <div class="header-cell" style="background: linear-gradient(135deg, ${s.color}, color-mix(in srgb, ${s.color} 70%, black))">
-            <div class="station-name">${s.name}</div>
-            <div class="station-sub">Stanowisko</div>
-          </div>
-        `;
-      });
-      
-      html += '</div>';
-      return html;
-    }
+    function renderCard(r, s2) {
+      const sc = s2 ? 'second-shift' : '';
+      const hasW = r.duplikaty, hasE = r.narusza8hA || r.narusza8hB, hasB = r.traineeB && r.c;
+      let cc = `session-card ${sc}`;
+      if (hasE) cc += ' has-error';
+      else if (hasW) cc += ' has-warning';
 
-    function renderCell(record, station) {
-      const hasWarning = record.duplikaty;
-      const hasError = record.narusza8hA || record.narusza8hB;
-      const hasB = record.traineeB && record.c;
-      
-      let cardClass = 'session-card';
-      if (hasError) cardClass += ' has-error';
-      else if (hasWarning) cardClass += ' has-duplicate';
-      
-      const progress = record.wymagane > 0 
-        ? Math.min(100, (record.exNrA / record.wymagane) * 100) 
-        : 0;
+      const prog = r.wymagane > 0 ? Math.min(100, Math.round((r.exNrA/r.wymagane)*100)) : 0;
+      const tA = r.traineeA_nazwa || `#${r.traineeA||'-'}`;
+      const tB = r.traineeB_nazwa || `#${r.traineeB||'-'}`;
+      const instr = r.instr_lista || '—';
 
-      return `
-        <div class="grid-cell">
-          <div class="${cardClass}" 
-               data-station="${station.id}" 
-               onclick="showDetail(${record.id})"
-               style="--card-color: ${station.color}">
-            
-            <div class="card-header">
-              <div class="trainee-info">
-                <div class="trainee-name">Trainee #${record.traineeA || '-'}</div>
-                <div class="trainee-phase">Stanowisko ${station.id}</div>
-              </div>
-              <div class="card-badges">
-                ${hasB ? '<span class="badge has-b" title="Z Trainee B">B</span>' : ''}
-                ${hasWarning ? '<span class="badge duplicate" title="Duplikat">!</span>' : ''}
-                ${hasError ? '<span class="badge error" title="Naruszenie 8h">8h</span>' : ''}
-              </div>
-            </div>
-
-            <div class="card-details">
-              <span class="detail-tag exercise">Ćw. ${record.exNrA || '-'}/${record.wymagane || '-'}</span>
-              ${Array.isArray(record.instruktorzy) && record.instruktorzy.length > 0 
-                ? `<span class="detail-tag instructor">Instr: ${record.instruktorzy.length}</span>` 
-                : ''}
-            </div>
-
-            ${hasB ? `
-              <div class="trainee-b-section">
-                <div class="trainee-b-label">Trainee B</div>
-                <div class="trainee-name" style="font-size: 11px;">#${record.traineeB} (Ćw. ${record.exNrB || '-'})</div>
-              </div>
-            ` : ''}
-
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: ${progress}%"></div>
-            </div>
+      return `<div class="grid-cell ${sc}"><div class="${cc}" onclick="showDetail(${r.id})">
+        <div class="card-header"><div class="card-badges">
+          ${s2?'<span class="badge shift2">II</span>':''}
+          ${hasB?'<span class="badge has-b">+B</span>':''}
+          ${hasW?'<span class="badge warning">!</span>':''}
+          ${hasE?'<span class="badge error">8h</span>':''}
+        </div></div>
+        <div class="trainee-section">
+          <div class="trainee-label">Trainee A</div>
+          <div class="trainee-name">${tA}</div>
+          <div class="trainee-exercise">
+            <span class="exercise-num">Ćw. ${r.exNrA||'-'}</span>
+            <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
+            <span class="exercise-progress">${r.exNrA||0}/${r.wymagane||'-'}</span>
           </div>
         </div>
-      `;
+        ${hasB?`<div class="trainee-section trainee-b">
+          <div class="trainee-label">Trainee B</div>
+          <div class="trainee-name">${tB}</div>
+          <div class="trainee-exercise"><span class="exercise-num">Ćw. ${r.exNrB||'-'}</span></div>
+        </div>`:''}
+        <div class="instructors-section">
+          <div class="instructors-label">Instruktorzy</div>
+          <div class="instructors-list">${formatInstr(instr)}</div>
+        </div>
+      </div></div>`;
     }
 
-    function groupByDayAndSlot(records) {
-      const grouped = {};
-      records.forEach(r => {
-        const key = `${r.dzienPL}_${r.godzOd}`;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(r);
-      });
-      return grouped;
+    function formatInstr(s) {
+      if (!s || s==='—') return '<span style="color:#94a3b8">—</span>';
+      return s.split(',').map(n=>n.trim()).filter(Boolean).map(n=>`<span class="instructor-chip">${n}</span>`).join('');
     }
 
-    // Temporary function - later you can map records to stations based on your logic
-    function getStationForRecord(record) {
-      // For now, all records go to station 1
-      // Later you can add a Station column to GRAFIK table
-      return record.station || 1;
-    }
-
-    // ============== DETAIL PANEL ==============
-    function showDetail(recordId) {
-      selectedRecord = filteredRecords.find(r => r.id === recordId);
+    function showDetail(id) {
+      selectedRecord = filteredRecords.find(r=>r.id===id);
       if (!selectedRecord) return;
-
-      const station = STATIONS.find(s => s.id === getStationForRecord(selectedRecord));
-      
-      document.getElementById('panel-header').style.setProperty('--panel-color', station?.color || '#3b82f6');
-      document.getElementById('panel-title').textContent = `Sesja #${selectedRecord.id}`;
-      document.getElementById('panel-subtitle').textContent = 
-        `${selectedRecord.dzienPL} | ${selectedRecord.godzOd} - ${selectedRecord.godzDo}`;
-
-      const progress = selectedRecord.wymagane > 0 
-        ? Math.round((selectedRecord.exNrA / selectedRecord.wymagane) * 100) 
-        : 0;
+      const r = selectedRecord;
+      document.getElementById('panel-title').textContent = `Sesja #${r.id}`;
+      document.getElementById('panel-subtitle').textContent = `${r.dzienPL} | ${r.godzOd}-${r.godzDo}`;
+      const tA = r.traineeA_nazwa || `#${r.traineeA||'-'}`;
+      const tB = r.traineeB_nazwa || `#${r.traineeB||'-'}`;
+      const prog = r.wymagane>0 ? Math.round((r.exNrA/r.wymagane)*100) : 0;
 
       document.getElementById('panel-content').innerHTML = `
-        <div class="panel-section">
-          <div class="panel-section-title">Czas i miejsce</div>
-          <div class="panel-row">
-            <span class="panel-label">Tydzień</span>
-            <span class="panel-value">${selectedRecord.tydzien || '-'}</span>
-          </div>
-          <div class="panel-row">
-            <span class="panel-label">Dzień</span>
-            <span class="panel-value">${selectedRecord.dzienPL || '-'}</span>
-          </div>
-          <div class="panel-row">
-            <span class="panel-label">Godziny</span>
-            <span class="panel-value">${selectedRecord.godzOd || '-'} - ${selectedRecord.godzDo || '-'}</span>
-          </div>
-          <div class="panel-row">
-            <span class="panel-label">Stanowisko</span>
-            <span class="panel-value">${station?.name || 'TWR 1'}</span>
-          </div>
+        <div class="panel-section"><div class="panel-section-title">Czas</div>
+          <div class="panel-row"><span class="panel-label">Tydzień</span><span class="panel-value">${r.tydzien||'-'}</span></div>
+          <div class="panel-row"><span class="panel-label">Dzień</span><span class="panel-value">${r.dzienPL||'-'}</span></div>
+          <div class="panel-row"><span class="panel-label">Godziny</span><span class="panel-value">${r.godzOd}-${r.godzDo}</span></div>
+          <div class="panel-row"><span class="panel-label">Zmiana</span><span class="panel-value">${isSecondShift(r.godzOd)?'II':'I'}</span></div>
         </div>
-
-        <div class="panel-section">
-          <div class="panel-section-title">Trainee A</div>
-          <div class="panel-row">
-            <span class="panel-label">ID</span>
-            <span class="panel-value">#${selectedRecord.traineeA || '-'}</span>
-          </div>
-          <div class="panel-row">
-            <span class="panel-label">Numer ćwiczenia</span>
-            <span class="panel-value">${selectedRecord.exNrA || '-'} / ${selectedRecord.wymagane || '-'}</span>
-          </div>
-          <div class="panel-row">
-            <span class="panel-label">Postęp</span>
-            <span class="panel-value ${progress >= 100 ? 'success' : ''}">${progress}%</span>
-          </div>
-          ${selectedRecord.narusza8hA ? `
-            <div class="panel-row">
-              <span class="panel-label">⚠️ Ostrzeżenie</span>
-              <span class="panel-value error">Naruszenie reguły 8h</span>
-            </div>
-          ` : ''}
+        <div class="panel-section"><div class="panel-section-title">Trainee A</div>
+          <div class="panel-row"><span class="panel-label">Nazwa</span><span class="panel-value">${tA}</span></div>
+          <div class="panel-row"><span class="panel-label">Ćwiczenie</span><span class="panel-value">${r.exNrA||'-'}/${r.wymagane||'-'}</span></div>
+          <div class="panel-row"><span class="panel-label">Postęp</span><span class="panel-value">${prog}%</span></div>
+          ${r.narusza8hA?'<div class="panel-row"><span class="panel-label">⚠️</span><span class="panel-value error">Naruszenie 8h</span></div>':''}
         </div>
-
-        ${selectedRecord.traineeB ? `
-          <div class="panel-section">
-            <div class="panel-section-title">Trainee B ${selectedRecord.c ? '(aktywny)' : '(nieaktywny)'}</div>
-            <div class="panel-row">
-              <span class="panel-label">ID</span>
-              <span class="panel-value">#${selectedRecord.traineeB}</span>
-            </div>
-            <div class="panel-row">
-              <span class="panel-label">Numer ćwiczenia</span>
-              <span class="panel-value">${selectedRecord.exNrB || '-'}</span>
-            </div>
-            ${selectedRecord.narusza8hB ? `
-              <div class="panel-row">
-                <span class="panel-label">⚠️ Ostrzeżenie</span>
-                <span class="panel-value error">Naruszenie reguły 8h</span>
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-
-        <div class="panel-section">
-          <div class="panel-section-title">Instruktorzy</div>
-          <div class="panel-row">
-            <span class="panel-label">Liczba</span>
-            <span class="panel-value">${Array.isArray(selectedRecord.instruktorzy) ? selectedRecord.instruktorzy.length : 0}</span>
-          </div>
+        ${r.traineeB?`<div class="panel-section"><div class="panel-section-title">Trainee B ${r.c?'(akt.)':''}</div>
+          <div class="panel-row"><span class="panel-label">Nazwa</span><span class="panel-value">${tB}</span></div>
+          <div class="panel-row"><span class="panel-label">Ćwiczenie</span><span class="panel-value">${r.exNrB||'-'}</span></div>
+          ${r.narusza8hB?'<div class="panel-row"><span class="panel-label">⚠️</span><span class="panel-value error">Naruszenie 8h</span></div>':''}
+        </div>`:''}
+        <div class="panel-section"><div class="panel-section-title">Instruktorzy</div>
+          <div class="panel-row"><span class="panel-value" style="width:100%">${r.instr_lista||'-'}</span></div>
         </div>
-
-        ${selectedRecord.duplikaty ? `
-          <div class="panel-section">
-            <div class="panel-section-title" style="color: var(--accent-orange)">⚠️ Uwagi</div>
-            <div class="panel-row">
-              <span class="panel-label">Duplikat</span>
-              <span class="panel-value warning">Trainee A = Trainee B</span>
-            </div>
-          </div>
-        ` : ''}
+        ${r.duplikaty?'<div class="panel-section"><div class="panel-section-title" style="color:var(--accent-orange)">⚠️ Ostrzeżenie</div><div class="panel-row"><span class="panel-label">Duplikat</span><span class="panel-value warning">A=B</span></div></div>':''}
       `;
-
       document.getElementById('detail-panel').classList.add('open');
       document.getElementById('detail-overlay').classList.add('open');
-
-      // Notify Grist
-      grist.setCursorPos({ rowId: recordId });
+      grist.setCursorPos({rowId:id});
     }
 
     function closePanel() {
       document.getElementById('detail-panel').classList.remove('open');
       document.getElementById('detail-overlay').classList.remove('open');
-      selectedRecord = null;
     }
-
-    function goToRecord() {
-      if (selectedRecord) {
-        grist.setCursorPos({ rowId: selectedRecord.id });
-        // Grist will handle focusing the table view
-      }
-    }
-
-    // Keyboard shortcut
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closePanel();
-    });
+    function goToRecord() { if(selectedRecord) grist.setCursorPos({rowId:selectedRecord.id}); }
+    document.addEventListener('keydown', e => { if(e.key==='Escape') closePanel(); });
   </script>
 </body>
 </html>
