@@ -178,73 +178,87 @@
       box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
     }
     
-    /* Layout dwukolumnowy dla Trainee A/B */
-    .trainee-split {
-      display: flex;
-      flex: 1;
-      min-height: 0;
-    }
-    
-    .trainee-side {
+    .session-content {
+      padding: 10px;
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 8px 10px;
-      gap: 6px;
+      gap: 8px;
     }
     
-    .trainee-side.side-a {
-      background: var(--trainee-a-bg);
-      border-radius: 6px 0 0 0;
-    }
-    
-    .trainee-side.side-b {
-      background: var(--trainee-b-bg);
-      border-radius: 0 6px 0 0;
-    }
-    
-    .trainee-side.empty {
-      background: rgba(255,255,255,0.02);
+    /* Trainee row - A po lewej, B po prawej */
+    .trainee-row {
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 8px;
     }
     
-    .trainee-side.empty::after {
-      content: '—';
-      color: var(--text-muted);
-      font-size: 1.2rem;
+    .trainee-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    
+    .trainee-item.side-a {
+      justify-content: flex-start;
+    }
+    
+    .trainee-item.side-b {
+      justify-content: flex-end;
+      text-align: right;
     }
     
     .trainee-divider {
-      width: 2px;
-      background: linear-gradient(to bottom, transparent 10%, var(--border-active) 30%, var(--border-active) 70%, transparent 90%);
+      width: 1px;
+      height: 20px;
+      background: var(--border-active);
+      flex-shrink: 0;
     }
     
-    .trainee-label {
+    .trainee-badge {
       font-size: 0.6rem;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      opacity: 0.7;
+      padding: 2px 5px;
+      border-radius: 3px;
+      flex-shrink: 0;
     }
     
-    .side-a .trainee-label { color: var(--trainee-a); }
-    .side-b .trainee-label { color: var(--trainee-b); }
+    .trainee-badge.badge-a {
+      background: var(--trainee-a-bg);
+      color: var(--trainee-a);
+    }
+    
+    .trainee-badge.badge-b {
+      background: var(--trainee-b-bg);
+      color: var(--trainee-b);
+    }
     
     .trainee-name {
       font-size: 0.8rem;
       font-weight: 600;
       color: var(--text-primary);
-      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
-    .trainee-meta {
+    .ex-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    
+    /* Meta row - fazy, instruktorzy, kategoria */
+    .session-meta {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       flex-wrap: wrap;
-      margin-top: auto;
+      padding-top: 6px;
+      border-top: 1px solid var(--border-subtle);
     }
     
     .faza-tag {
@@ -260,21 +274,6 @@
     .faza-3 { background: var(--faza-3-bg); color: var(--faza-3); }
     .faza-4 { background: var(--faza-4-bg); color: var(--faza-4); }
     .faza-5 { background: var(--faza-5-bg); color: var(--faza-5); }
-    
-    .ex-number {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      color: var(--text-muted);
-    }
-    
-    .session-footer {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      background: rgba(0,0,0,0.2);
-      border-top: 1px solid var(--border-subtle);
-    }
     
     .instructor-list {
       font-size: 0.7rem;
@@ -382,19 +381,6 @@
       max-width: 220px;
     }
 
-    /* Compact mode */
-    .session-card.compact .trainee-side {
-      padding: 6px 8px;
-      gap: 4px;
-    }
-    
-    .session-card.compact .trainee-name {
-      font-size: 0.75rem;
-    }
-    
-    .session-card.compact .session-footer {
-      padding: 6px 8px;
-    }
   </style>
 </head>
 <body>
@@ -604,6 +590,14 @@
             const first = group[0];
             const last = group[group.length - 1];
             
+            const hasTraineeA = first.traineeANazwa && String(first.traineeANazwa).trim() !== '';
+            const hasTraineeB = first.traineeBNazwa && String(first.traineeBNazwa).trim() !== '' && first.c;
+            
+            // Nie renderuj pustych kart
+            if (!hasTraineeA && !hasTraineeB) {
+              return;
+            }
+            
             const startTime = parseTime(first.slotOd);
             const endTime = parseTime(last.slotDo);
             const slotDuration = uniqueSlots.length > 1 
@@ -616,10 +610,6 @@
             const fazaBNum = getFazaNumber(first.fazaB);
             
             const hasWarning = first.narusza8hA || first.narusza8hB;
-            const isCompact = slotsSpanned === 1;
-            
-            const hasTraineeA = first.traineeANazwa && String(first.traineeANazwa).trim() !== '';
-            const hasTraineeB = first.traineeBNazwa && String(first.traineeBNazwa).trim() !== '' && first.c;
             
             // Prepare tooltip data
             const tooltipData = {
@@ -636,45 +626,42 @@
             };
             
             html += `
-              <div class="session-card ${hasWarning ? 'warning' : ''} ${isCompact ? 'compact' : ''}" 
+              <div class="session-card ${hasWarning ? 'warning' : ''}" 
                    style="height: ${height}px;"
                    data-session-id="${first.id}"
                    onmouseenter="showTooltip(event, this)"
                    onmouseleave="hideTooltip()"
                    data-tooltip='${escapeHtml(JSON.stringify(tooltipData))}'>
                 
-                <div class="trainee-split">
-                  <!-- Trainee A - lewa strona -->
-                  <div class="trainee-side side-a ${!hasTraineeA ? 'empty' : ''}">
+                <div class="session-content">
+                  <!-- Trainee A | B w jednym wierszu -->
+                  <div class="trainee-row">
                     ${hasTraineeA ? `
-                      <div class="trainee-label">Trainee A</div>
-                      <div class="trainee-name">${escapeHtml(first.traineeANazwa)}</div>
-                      <div class="trainee-meta">
-                        ${fazaANum ? `<span class="faza-tag faza-${fazaANum}">F${fazaANum}</span>` : ''}
+                      <div class="trainee-item side-a">
+                        <span class="trainee-badge badge-a">A</span>
+                        <span class="trainee-name">${escapeHtml(first.traineeANazwa)}</span>
                         ${first.exNrA ? `<span class="ex-number">#${first.exNrA}</span>` : ''}
                       </div>
-                    ` : ''}
-                  </div>
-                  
-                  <div class="trainee-divider"></div>
-                  
-                  <!-- Trainee B - prawa strona -->
-                  <div class="trainee-side side-b ${!hasTraineeB ? 'empty' : ''}">
+                    ` : '<div class="trainee-item side-a"></div>'}
+                    
+                    ${hasTraineeA && hasTraineeB ? '<div class="trainee-divider"></div>' : ''}
+                    
                     ${hasTraineeB ? `
-                      <div class="trainee-label">Trainee B</div>
-                      <div class="trainee-name">${escapeHtml(first.traineeBNazwa)}</div>
-                      <div class="trainee-meta">
-                        ${fazaBNum ? `<span class="faza-tag faza-${fazaBNum}">F${fazaBNum}</span>` : ''}
+                      <div class="trainee-item side-b">
                         ${first.exNrB ? `<span class="ex-number">#${first.exNrB}</span>` : ''}
+                        <span class="trainee-name">${escapeHtml(first.traineeBNazwa)}</span>
+                        <span class="trainee-badge badge-b">B</span>
                       </div>
                     ` : ''}
                   </div>
-                </div>
-                
-                <!-- Footer z instruktorami -->
-                <div class="session-footer">
-                  <span class="instructor-list">${escapeHtml(first.instrLista) || '—'}</span>
-                  ${first.kategoria ? `<span class="kategoria-badge">${escapeHtml(first.kategoria)}</span>` : ''}
+                  
+                  <!-- Meta: fazy, instruktorzy, kategoria -->
+                  <div class="session-meta">
+                    ${fazaANum ? `<span class="faza-tag faza-${fazaANum}">F${fazaANum}</span>` : ''}
+                    ${fazaBNum && fazaBNum !== fazaANum ? `<span class="faza-tag faza-${fazaBNum}">F${fazaBNum}</span>` : ''}
+                    <span class="instructor-list">${escapeHtml(first.instrLista) || '—'}</span>
+                    ${first.kategoria ? `<span class="kategoria-badge">${escapeHtml(first.kategoria)}</span>` : ''}
+                  </div>
                 </div>
                 
                 ${slotsSpanned > 1 ? `<div class="session-time-range">${escapeHtml(first.slotOd)} → ${escapeHtml(last.slotDo)}</div>` : ''}
