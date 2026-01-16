@@ -19,7 +19,6 @@
       --text-secondary: #8888a0;
       --text-muted: #555566;
       
-      /* Faza colors - vibrant but sophisticated */
       --faza-1: #22c55e;
       --faza-1-bg: rgba(34, 197, 94, 0.12);
       --faza-2: #3b82f6;
@@ -31,16 +30,15 @@
       --faza-5: #a855f7;
       --faza-5-bg: rgba(168, 85, 247, 0.12);
       
+      --trainee-a: #22c55e;
+      --trainee-a-bg: rgba(34, 197, 94, 0.08);
+      --trainee-b: #3b82f6;
+      --trainee-b-bg: rgba(59, 130, 246, 0.08);
+      
       --slot-height: 80px;
-      --header-height: 56px;
-      --time-col-width: 70px;
     }
     
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
       font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -50,10 +48,7 @@
       overflow-x: auto;
     }
     
-    .container {
-      padding: 20px;
-      min-width: fit-content;
-    }
+    .container { padding: 20px; min-width: fit-content; }
     
     .header {
       display: flex;
@@ -137,10 +132,6 @@
       color: var(--text-primary);
     }
     
-    .day-date.today {
-      color: var(--faza-2);
-    }
-    
     .time-slot {
       background: var(--bg-secondary);
       padding: 8px 12px;
@@ -187,54 +178,73 @@
       box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
     }
     
-    .session-indicator {
-      height: 3px;
-      flex-shrink: 0;
+    /* Layout dwukolumnowy dla Trainee A/B */
+    .trainee-split {
+      display: flex;
+      flex: 1;
+      min-height: 0;
     }
     
-    .session-content {
-      padding: 10px 12px;
+    .trainee-side {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      overflow: hidden;
+      padding: 8px 10px;
+      gap: 6px;
     }
     
-    .trainee-row {
+    .trainee-side.side-a {
+      background: var(--trainee-a-bg);
+      border-radius: 6px 0 0 0;
+    }
+    
+    .trainee-side.side-b {
+      background: var(--trainee-b-bg);
+      border-radius: 0 6px 0 0;
+    }
+    
+    .trainee-side.empty {
+      background: rgba(255,255,255,0.02);
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
     }
     
-    .trainee-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      font-weight: 600;
+    .trainee-side.empty::after {
+      content: '—';
+      color: var(--text-muted);
+      font-size: 1.2rem;
     }
     
-    .trainee-badge.trainee-a {
-      background: var(--faza-1-bg);
-      color: var(--faza-1);
+    .trainee-divider {
+      width: 2px;
+      background: linear-gradient(to bottom, transparent 10%, var(--border-active) 30%, var(--border-active) 70%, transparent 90%);
     }
     
-    .trainee-badge.trainee-b {
-      background: var(--faza-2-bg);
-      color: var(--faza-2);
+    .trainee-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.7;
     }
+    
+    .side-a .trainee-label { color: var(--trainee-a); }
+    .side-b .trainee-label { color: var(--trainee-b); }
     
     .trainee-name {
       font-size: 0.8rem;
       font-weight: 600;
       color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
+      line-height: 1.3;
+    }
+    
+    .trainee-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: auto;
     }
     
     .faza-tag {
@@ -243,7 +253,6 @@
       font-weight: 600;
       padding: 2px 6px;
       border-radius: 3px;
-      flex-shrink: 0;
     }
     
     .faza-1 { background: var(--faza-1-bg); color: var(--faza-1); }
@@ -256,25 +265,24 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.65rem;
       color: var(--text-muted);
-      margin-left: auto;
     }
     
-    .session-meta {
+    .session-footer {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding-top: 6px;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(0,0,0,0.2);
       border-top: 1px solid var(--border-subtle);
-      margin-top: auto;
     }
     
     .instructor-list {
       font-size: 0.7rem;
       color: var(--text-secondary);
+      flex: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      flex: 1;
     }
     
     .kategoria-badge {
@@ -293,15 +301,9 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.65rem;
       color: var(--text-muted);
-      padding: 4px 8px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 0 0 6px 6px;
       text-align: center;
-    }
-    
-    .empty-cell {
-      background: var(--bg-primary);
-      min-height: var(--slot-height);
+      padding: 4px 8px;
+      background: rgba(0,0,0,0.15);
     }
     
     .loading {
@@ -323,9 +325,7 @@
       margin-right: 12px;
     }
     
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     
     .no-data {
       text-align: center;
@@ -347,7 +347,7 @@
       border-radius: 8px;
       padding: 12px 16px;
       font-size: 0.8rem;
-      max-width: 300px;
+      max-width: 350px;
       z-index: 1000;
       box-shadow: 0 12px 40px rgba(0,0,0,0.5);
       pointer-events: none;
@@ -378,51 +378,22 @@
     .tooltip-value {
       color: var(--text-primary);
       font-weight: 500;
-    }
-    
-    /* Week navigation */
-    .week-nav {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .week-nav button {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-secondary);
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 500;
-      transition: all 0.15s ease;
-    }
-    
-    .week-nav button:hover {
-      background: var(--bg-hover);
-      border-color: var(--border-active);
-      color: var(--text-primary);
-    }
-    
-    .current-week {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      font-weight: 500;
+      text-align: right;
+      max-width: 220px;
     }
 
-    /* Compact mode for many slots */
-    .session-card.compact .session-content {
+    /* Compact mode */
+    .session-card.compact .trainee-side {
       padding: 6px 8px;
       gap: 4px;
     }
     
     .session-card.compact .trainee-name {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
     }
     
-    .session-card.compact .session-meta {
-      padding-top: 4px;
+    .session-card.compact .session-footer {
+      padding: 6px 8px;
     }
   </style>
 </head>
@@ -431,6 +402,9 @@
     <div class="header">
       <h1>📋 Grafik Szkoleniowy TWR</h1>
       <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background: var(--trainee-a)"></div>Trainee A</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--trainee-b)"></div>Trainee B</div>
+        <span style="margin: 0 8px; color: var(--text-muted)">|</span>
         <div class="legend-item"><div class="legend-dot" style="background: var(--faza-1)"></div>F1</div>
         <div class="legend-item"><div class="legend-dot" style="background: var(--faza-2)"></div>F2</div>
         <div class="legend-item"><div class="legend-dot" style="background: var(--faza-3)"></div>F3</div>
@@ -450,13 +424,8 @@
 
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script>
-    // State
     let allRecords = [];
-    let timeSlots = [];
-    let days = [];
-    let currentWeekStart = null;
     
-    // Grist API setup
     grist.ready({
       columns: [
         'Data', 'Slot', 'Slot_Godz_od', 'Slot_Godz_do',
@@ -470,13 +439,12 @@
     });
     
     grist.onRecords(function(records, mappings) {
-      console.log('Received records:', records.length);
+      console.log('Received records:', records.length, records);
       allRecords = records.map(r => mapRecord(r, mappings));
       renderCalendar();
     });
     
     function mapRecord(rec, mappings) {
-      // Map column names if mappings exist
       const get = (col) => {
         if (mappings && mappings[col]) {
           return rec[mappings[col]];
@@ -494,8 +462,8 @@
         traineeB: get('TWR1_TraineeB'),
         traineeANazwa: get('TraineeA_Nazwa') || '',
         traineeBNazwa: get('TraineeB_Nazwa') || '',
-        fazaA: get('TWR1_TraineeA_Faza') || '',
-        fazaB: get('TWR1_TraineeB_Faza') || '',
+        fazaA: get('TWR1_TraineeA_Faza'),
+        fazaB: get('TWR1_TraineeB_Faza'),
         exNrA: get('exNrA'),
         exNrB: get('exNrB'),
         instrLista: get('Instr_lista') || '',
@@ -514,33 +482,31 @@
       return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0);
     }
     
-    function formatTime(minutes) {
-      const h = Math.floor(minutes / 60);
-      const m = minutes % 60;
-      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-    }
-    
-    function getFazaNumber(fazaStr) {
-      if (!fazaStr) return null;
-      const match = String(fazaStr).match(/(\d+)/);
+    function getFazaNumber(fazaValue) {
+      // Handle all empty/null/undefined/falsy cases
+      if (fazaValue === null || fazaValue === undefined) return null;
+      if (fazaValue === 0 || fazaValue === '') return null;
+      if (typeof fazaValue === 'object') {
+        // Grist może zwrócić obiekt Reference - sprawdź czy ma wartość
+        if (Array.isArray(fazaValue) && fazaValue.length === 0) return null;
+        if (fazaValue.id === 0 || !fazaValue.id) return null;
+        // Spróbuj wyciągnąć z obiektu
+        return null;
+      }
+      
+      const str = String(fazaValue).trim();
+      if (!str || str === '0' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
+        return null;
+      }
+      
+      // Szukaj liczby w stringu (np. "F2", "Faza 3", "2")
+      const match = str.match(/(\d+)/);
       return match ? parseInt(match[1]) : null;
-    }
-    
-    function getFazaColor(fazaNum) {
-      const colors = {
-        1: '#22c55e',
-        2: '#3b82f6', 
-        3: '#f59e0b',
-        4: '#ef4444',
-        5: '#a855f7'
-      };
-      return colors[fazaNum] || '#666';
     }
     
     function groupConsecutiveSessions(sessions) {
       if (!sessions.length) return [];
       
-      // Sort by time
       sessions.sort((a, b) => parseTime(a.slotOd) - parseTime(b.slotOd));
       
       const groups = [];
@@ -550,13 +516,12 @@
         const prev = sessions[i - 1];
         const curr = sessions[i];
         
-        // Check if consecutive and same trainee combo
         const prevEnd = parseTime(prev.slotDo);
         const currStart = parseTime(curr.slotOd);
         
         const sameTraineeA = prev.traineeA === curr.traineeA;
         const sameTraineeB = prev.traineeB === curr.traineeB;
-        const isConsecutive = Math.abs(currStart - prevEnd) <= 15; // 15 min tolerance
+        const isConsecutive = Math.abs(currStart - prevEnd) <= 15;
         
         if (isConsecutive && sameTraineeA && sameTraineeB) {
           currentGroup.push(curr);
@@ -568,6 +533,16 @@
       groups.push(currentGroup);
       
       return groups;
+    }
+    
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
     
     function renderCalendar() {
@@ -586,14 +561,10 @@
         return;
       }
       
-      // Extract unique days and time slots
       const uniqueDays = [...new Set(allRecords.map(r => r.data))].filter(Boolean).sort((a, b) => a - b);
       const uniqueSlots = [...new Set(allRecords.map(r => r.slotOd))].filter(Boolean);
-      
-      // Sort slots by time
       uniqueSlots.sort((a, b) => parseTime(a) - parseTime(b));
       
-      // Get day names mapping
       const dayNames = {};
       allRecords.forEach(r => {
         if (r.data && r.dzienPL) {
@@ -601,106 +572,112 @@
         }
       });
       
-      // Build grid
-      const numCols = uniqueDays.length + 1; // +1 for time column
-      
       let html = `
-        <div class="calendar-grid" style="grid-template-columns: var(--time-col-width) repeat(${uniqueDays.length}, minmax(180px, 1fr));">
+        <div class="calendar-grid" style="grid-template-columns: 70px repeat(${uniqueDays.length}, minmax(240px, 1fr));">
           <div class="time-header">Godziny</div>
       `;
       
-      // Day headers
       uniqueDays.forEach(dayId => {
         const dayName = dayNames[dayId] || '';
         html += `
           <div class="day-header">
-            <div class="day-name">${dayName}</div>
-            <div class="day-date">${dayId}</div>
+            <div class="day-name">${escapeHtml(dayName)}</div>
+            <div class="day-date">${escapeHtml(dayId)}</div>
           </div>
         `;
       });
       
-      // Rows for each time slot
       uniqueSlots.forEach((slotTime, slotIndex) => {
         const slotEnd = allRecords.find(r => r.slotOd === slotTime)?.slotDo || '';
         
-        html += `<div class="time-slot">${slotTime}<br><span style="opacity:0.5">-${slotEnd}</span></div>`;
+        html += `<div class="time-slot">${escapeHtml(slotTime)}<br><span style="opacity:0.5">-${escapeHtml(slotEnd)}</span></div>`;
         
         uniqueDays.forEach(dayId => {
-          // Find sessions for this day and slot
           const daySessions = allRecords.filter(r => r.data === dayId);
           const slotSessions = daySessions.filter(r => r.slotOd === slotTime);
           
-          // Group consecutive sessions
           const groups = groupConsecutiveSessions(slotSessions);
           
           html += `<div class="cell" data-day="${dayId}" data-slot="${slotTime}">`;
           
-          groups.forEach((group, groupIndex) => {
+          groups.forEach((group) => {
             const first = group[0];
             const last = group[group.length - 1];
             
-            // Calculate height based on number of slots spanned
             const startTime = parseTime(first.slotOd);
             const endTime = parseTime(last.slotDo);
-            const slotDuration = parseTime(uniqueSlots[1]) - parseTime(uniqueSlots[0]) || 60;
+            const slotDuration = uniqueSlots.length > 1 
+              ? parseTime(uniqueSlots[1]) - parseTime(uniqueSlots[0]) 
+              : 60;
             const slotsSpanned = Math.max(1, Math.ceil((endTime - startTime) / slotDuration));
-            const height = slotsSpanned * 80 - 8; // slot height minus padding
+            const height = slotsSpanned * 80 - 8;
             
             const fazaANum = getFazaNumber(first.fazaA);
             const fazaBNum = getFazaNumber(first.fazaB);
-            const indicatorColor = getFazaColor(fazaANum || fazaBNum);
             
             const hasWarning = first.narusza8hA || first.narusza8hB;
             const isCompact = slotsSpanned === 1;
+            
+            const hasTraineeA = first.traineeANazwa && String(first.traineeANazwa).trim() !== '';
+            const hasTraineeB = first.traineeBNazwa && String(first.traineeBNazwa).trim() !== '' && first.c;
+            
+            // Prepare tooltip data
+            const tooltipData = {
+              slotOd: first.slotOd,
+              slotDo: last.slotDo,
+              traineeANazwa: first.traineeANazwa,
+              traineeBNazwa: first.traineeBNazwa,
+              fazaA: fazaANum,
+              fazaB: fazaBNum,
+              instrLista: first.instrLista,
+              narusza8hA: first.narusza8hA,
+              narusza8hB: first.narusza8hB,
+              c: first.c
+            };
             
             html += `
               <div class="session-card ${hasWarning ? 'warning' : ''} ${isCompact ? 'compact' : ''}" 
                    style="height: ${height}px;"
                    data-session-id="${first.id}"
-                   onmouseenter="showTooltip(event, ${JSON.stringify(first).replace(/"/g, '&quot;')})"
-                   onmouseleave="hideTooltip()">
-                <div class="session-indicator" style="background: ${indicatorColor}"></div>
-                <div class="session-content">
-            `;
-            
-            // Trainee A
-            if (first.traineeANazwa) {
-              html += `
-                <div class="trainee-row">
-                  <span class="trainee-badge trainee-a">A</span>
-                  <span class="trainee-name">${first.traineeANazwa}</span>
-                  ${fazaANum ? `<span class="faza-tag faza-${fazaANum}">F${fazaANum}</span>` : ''}
-                  ${first.exNrA ? `<span class="ex-number">#${first.exNrA}</span>` : ''}
+                   onmouseenter="showTooltip(event, this)"
+                   onmouseleave="hideTooltip()"
+                   data-tooltip='${escapeHtml(JSON.stringify(tooltipData))}'>
+                
+                <div class="trainee-split">
+                  <!-- Trainee A - lewa strona -->
+                  <div class="trainee-side side-a ${!hasTraineeA ? 'empty' : ''}">
+                    ${hasTraineeA ? `
+                      <div class="trainee-label">Trainee A</div>
+                      <div class="trainee-name">${escapeHtml(first.traineeANazwa)}</div>
+                      <div class="trainee-meta">
+                        ${fazaANum ? `<span class="faza-tag faza-${fazaANum}">F${fazaANum}</span>` : ''}
+                        ${first.exNrA ? `<span class="ex-number">#${first.exNrA}</span>` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                  
+                  <div class="trainee-divider"></div>
+                  
+                  <!-- Trainee B - prawa strona -->
+                  <div class="trainee-side side-b ${!hasTraineeB ? 'empty' : ''}">
+                    ${hasTraineeB ? `
+                      <div class="trainee-label">Trainee B</div>
+                      <div class="trainee-name">${escapeHtml(first.traineeBNazwa)}</div>
+                      <div class="trainee-meta">
+                        ${fazaBNum ? `<span class="faza-tag faza-${fazaBNum}">F${fazaBNum}</span>` : ''}
+                        ${first.exNrB ? `<span class="ex-number">#${first.exNrB}</span>` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
                 </div>
-              `;
-            }
-            
-            // Trainee B
-            if (first.traineeBNazwa && first.c) {
-              html += `
-                <div class="trainee-row">
-                  <span class="trainee-badge trainee-b">B</span>
-                  <span class="trainee-name">${first.traineeBNazwa}</span>
-                  ${fazaBNum ? `<span class="faza-tag faza-${fazaBNum}">F${fazaBNum}</span>` : ''}
-                  ${first.exNrB ? `<span class="ex-number">#${first.exNrB}</span>` : ''}
+                
+                <!-- Footer z instruktorami -->
+                <div class="session-footer">
+                  <span class="instructor-list">${escapeHtml(first.instrLista) || '—'}</span>
+                  ${first.kategoria ? `<span class="kategoria-badge">${escapeHtml(first.kategoria)}</span>` : ''}
                 </div>
-              `;
-            }
-            
-            // Meta row (instructors, category)
-            if (first.instrLista || first.kategoria) {
-              html += `
-                <div class="session-meta">
-                  <span class="instructor-list">${first.instrLista || '—'}</span>
-                  ${first.kategoria ? `<span class="kategoria-badge">${first.kategoria}</span>` : ''}
-                </div>
-              `;
-            }
-            
-            html += `
-                </div>
-                ${slotsSpanned > 1 ? `<div class="session-time-range">${first.slotOd} → ${last.slotDo}</div>` : ''}
+                
+                ${slotsSpanned > 1 ? `<div class="session-time-range">${escapeHtml(first.slotOd)} → ${escapeHtml(last.slotDo)}</div>` : ''}
               </div>
             `;
           });
@@ -713,9 +690,15 @@
       container.innerHTML = html;
     }
     
-    // Tooltip functions
-    function showTooltip(event, session) {
+    function showTooltip(event, element) {
       const tooltip = document.getElementById('tooltip');
+      let session;
+      try {
+        session = JSON.parse(element.dataset.tooltip.replace(/&quot;/g, '"').replace(/&#39;/g, "'"));
+      } catch(e) {
+        console.error('Tooltip parse error:', e);
+        return;
+      }
       
       let content = `
         <div class="tooltip-row">
@@ -728,7 +711,7 @@
         content += `
           <div class="tooltip-row">
             <span class="tooltip-label">Trainee A</span>
-            <span class="tooltip-value">${session.traineeANazwa} (F${getFazaNumber(session.fazaA) || '?'})</span>
+            <span class="tooltip-value">${session.traineeANazwa}${session.fazaA ? ` (F${session.fazaA})` : ''}</span>
           </div>
         `;
       }
@@ -737,7 +720,7 @@
         content += `
           <div class="tooltip-row">
             <span class="tooltip-label">Trainee B</span>
-            <span class="tooltip-value">${session.traineeBNazwa} (F${getFazaNumber(session.fazaB) || '?'})</span>
+            <span class="tooltip-value">${session.traineeBNazwa}${session.fazaB ? ` (F${session.fazaB})` : ''}</span>
           </div>
         `;
       }
@@ -762,9 +745,22 @@
       
       tooltip.innerHTML = content;
       
-      const rect = event.target.getBoundingClientRect();
-      tooltip.style.left = `${rect.right + 10}px`;
-      tooltip.style.top = `${rect.top}px`;
+      const rect = element.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      
+      let left = rect.right + 10;
+      let top = rect.top;
+      
+      // Keep tooltip on screen
+      if (left + 350 > window.innerWidth) {
+        left = rect.left - 360;
+      }
+      if (top + 200 > window.innerHeight) {
+        top = window.innerHeight - 210;
+      }
+      
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
       tooltip.classList.add('visible');
     }
     
@@ -772,94 +768,6 @@
       document.getElementById('tooltip').classList.remove('visible');
     }
     
-    // Demo mode - for testing outside Grist
-    if (typeof grist === 'undefined' || !window.frameElement) {
-      console.log('Running in demo mode');
-      
-      // Sample data for testing
-      setTimeout(() => {
-        allRecords = [
-          {
-            id: 1, data: 1, slotOd: '08:00', slotDo: '09:00',
-            traineeANazwa: 'Kowalski Jan', traineeBNazwa: 'Nowak Anna',
-            fazaA: 'F2', fazaB: 'F1', exNrA: 5, exNrB: 3,
-            instrLista: 'Wiśniewski P., Zielińska M.', kategoria: 'TWR',
-            c: true, dzienPL: 'Pon'
-          },
-          {
-            id: 2, data: 1, slotOd: '09:00', slotDo: '10:00',
-            traineeANazwa: 'Kowalski Jan', traineeBNazwa: 'Nowak Anna',
-            fazaA: 'F2', fazaB: 'F1', exNrA: 5, exNrB: 3,
-            instrLista: 'Wiśniewski P., Zielińska M.', kategoria: 'TWR',
-            c: true, dzienPL: 'Pon'
-          },
-          {
-            id: 3, data: 1, slotOd: '10:00', slotDo: '11:00',
-            traineeANazwa: 'Kowalski Jan', traineeBNazwa: 'Nowak Anna',
-            fazaA: 'F2', fazaB: 'F1', exNrA: 5, exNrB: 3,
-            instrLista: 'Wiśniewski P., Zielińska M.', kategoria: 'TWR',
-            c: true, dzienPL: 'Pon'
-          },
-          {
-            id: 4, data: 1, slotOd: '11:00', slotDo: '12:00',
-            traineeANazwa: 'Malinowski Piotr', traineeBNazwa: '',
-            fazaA: 'F3', fazaB: '', exNrA: 2, exNrB: null,
-            instrLista: 'Kowalczyk A.', kategoria: 'APP',
-            c: false, dzienPL: 'Pon'
-          },
-          {
-            id: 5, data: 2, slotOd: '08:00', slotDo: '09:00',
-            traineeANazwa: 'Wiśniewska Ewa', traineeBNazwa: 'Zając Tomasz',
-            fazaA: 'F1', fazaB: 'F2', exNrA: 1, exNrB: 7,
-            instrLista: 'Dąbrowski K.', kategoria: 'TWR',
-            c: true, dzienPL: 'Wt', narusza8hA: true
-          },
-          {
-            id: 6, data: 2, slotOd: '09:00', slotDo: '10:00',
-            traineeANazwa: 'Wiśniewska Ewa', traineeBNazwa: 'Zając Tomasz',
-            fazaA: 'F1', fazaB: 'F2', exNrA: 1, exNrB: 7,
-            instrLista: 'Dąbrowski K.', kategoria: 'TWR',
-            c: true, dzienPL: 'Wt'
-          },
-          {
-            id: 7, data: 3, slotOd: '08:00', slotDo: '09:00',
-            traineeANazwa: 'Lewandowski Adam', traineeBNazwa: '',
-            fazaA: 'F4', fazaB: '', exNrA: 12, exNrB: null,
-            instrLista: 'Nowicki B., Sikora T.', kategoria: 'TWR',
-            c: false, dzienPL: 'Śr'
-          },
-          {
-            id: 8, data: 3, slotOd: '10:00', slotDo: '11:00',
-            traineeANazwa: 'Kaczmarek Maria', traineeBNazwa: 'Pawlak Łukasz',
-            fazaA: 'F2', fazaB: 'F3', exNrA: 8, exNrB: 4,
-            instrLista: 'Wojciechowski R.', kategoria: 'APP',
-            c: true, dzienPL: 'Śr'
-          },
-          {
-            id: 9, data: 3, slotOd: '11:00', slotDo: '12:00',
-            traineeANazwa: 'Kaczmarek Maria', traineeBNazwa: 'Pawlak Łukasz',
-            fazaA: 'F2', fazaB: 'F3', exNrA: 8, exNrB: 4,
-            instrLista: 'Wojciechowski R.', kategoria: 'APP',
-            c: true, dzienPL: 'Śr'
-          },
-          {
-            id: 10, data: 3, slotOd: '12:00', slotDo: '13:00',
-            traineeANazwa: 'Kaczmarek Maria', traineeBNazwa: 'Pawlak Łukasz',
-            fazaA: 'F2', fazaB: 'F3', exNrA: 8, exNrB: 4,
-            instrLista: 'Wojciechowski R.', kategoria: 'APP',
-            c: true, dzienPL: 'Śr'
-          },
-          {
-            id: 11, data: 3, slotOd: '13:00', slotDo: '14:00',
-            traineeANazwa: 'Kaczmarek Maria', traineeBNazwa: 'Pawlak Łukasz',
-            fazaA: 'F2', fazaB: 'F3', exNrA: 8, exNrB: 4,
-            instrLista: 'Wojciechowski R.', kategoria: 'APP',
-            c: true, dzienPL: 'Śr'
-          }
-        ];
-        renderCalendar();
-      }, 500);
-    }
   </script>
 </body>
 </html>
