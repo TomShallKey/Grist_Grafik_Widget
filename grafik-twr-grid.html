@@ -2,1492 +2,462 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grafik KRL - Widget</title>
+  <title>Grist Grafik TWR - Calendar View</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
   <style>
-    :root {
-      --bg-primary: #f8fafc;
-      --bg-card: #ffffff;
-      --border-color: #e2e8f0;
-      --text-primary: #1e293b;
-      --text-secondary: #64748b;
-      --text-muted: #94a3b8;
-      --accent-blue: #3b82f6;
-      --accent-green: #22c55e;
-      --accent-red: #ef4444;
-      --accent-orange: #f97316;
-      --accent-purple: #8b5cf6;
-      --shift1-bg: #ffffff;
-      --shift2-bg: #f1f5f9;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-size: 13px;
-      line-height: 1.4;
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(4px);
     }
-
-    /* ========== KONTROLKI ========== */
-    .controls {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border-color);
-      padding: 10px 16px;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
+    
+    /* Grid Lines Logic */
+    .time-row {
+      border-bottom: 1px solid #e2e8f0;
+      min-height: 80px; /* Wysokość bazowa jednego slotu 1h */
     }
-
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .control-label {
-      font-size: 11px;
-      color: var(--text-secondary);
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-
-    select, input[type="date"] {
-      padding: 6px 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 12px;
-      background: #fff;
-      color: var(--text-primary);
-      min-width: 120px;
-    }
-
-    select:focus, input:focus {
-      outline: none;
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    .btn {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .btn-primary {
-      background: var(--accent-blue);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #2563eb;
-    }
-
-    .btn-secondary {
-      background: #f1f5f9;
-      color: var(--text-primary);
-      border: 1px solid var(--border-color);
-    }
-
-    .btn-secondary:hover {
-      background: #e2e8f0;
-    }
-
-    .stats {
-      margin-left: auto;
-      display: flex;
-      gap: 14px;
-      font-size: 11px;
-    }
-
-    .stat {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .stat-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .stat-dot.total { background: var(--accent-blue); }
-    .stat-dot.warning { background: var(--accent-orange); }
-    .stat-dot.error { background: var(--accent-red); }
-
-    .status-indicator {
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 500;
-    }
-
-    .status-ok { background: #dcfce7; color: #166534; }
-    .status-saving { background: #fef3c7; color: #92400e; }
-    .status-error { background: #fee2e2; color: #991b1b; }
-
-    /* ========== SIATKA ========== */
-    .grid-wrapper {
-      padding: 12px;
-      overflow-x: auto;
-    }
-
-    .schedule-grid {
-      display: grid;
-      grid-template-columns: 90px 1fr;
-      gap: 1px;
-      background: var(--border-color);
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      min-width: 600px;
-    }
-
-    /* Nagłówek dnia */
-    .day-header {
-      grid-column: 1 / -1;
-      background: linear-gradient(90deg, #e0e7ff, #eef2ff);
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-top: 2px solid #c7d2fe;
-    }
-
-    .day-header:first-child {
-      border-top: none;
-    }
-
-    .day-name {
-      font-weight: 700;
-      font-size: 14px;
-      color: #3730a3;
-    }
-
-    .day-date {
-      color: var(--text-secondary);
-      font-size: 12px;
-    }
-
-    .day-stats {
-      margin-left: auto;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    /* Etykieta slotu */
-    .slot-label {
-      background: #f8fafc;
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border-right: 2px solid var(--border-color);
-      min-height: 100px;
-    }
-
-    .slot-label.shift2 {
-      background: #e2e8f0;
-    }
-
-    .slot-time {
-      font-weight: 700;
-      font-size: 14px;
-      color: var(--text-primary);
-    }
-
-    .slot-time-end {
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .shift-badge {
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 3px;
-      margin-top: 4px;
-      font-weight: 600;
-    }
-
-    .shift-badge.shift1 {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-
-    .shift-badge.shift2 {
-      background: #64748b;
-      color: white;
-    }
-
-    /* Komórka siatki */
-    .grid-cell {
-      background: var(--bg-card);
-      min-height: 100px;
-      padding: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .grid-cell.shift2 {
-      background: var(--shift2-bg);
-    }
-
-    .grid-cell.empty {
-      background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 8px,
-        #f1f5f9 8px,
-        #f1f5f9 16px
-      );
-      cursor: pointer;
-      position: relative;
-    }
-
-    .grid-cell.empty:hover {
-      background: #e0e7ff;
-    }
-
-    .grid-cell.empty::after {
-      content: '+ Dodaj';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 500;
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-
-    .grid-cell.empty:hover::after {
-      opacity: 1;
-    }
-
-    /* ========== KARTA SESJI ========== */
+    
+    /* Animacje kart */
     .session-card {
-      background: var(--bg-card);
-      border-radius: 8px;
-      padding: 10px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      border-left: 4px solid var(--accent-blue);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      flex: 1;
-      min-height: 88px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
     .session-card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    }
-
-    .session-card.has-warning {
-      background: #fffbeb;
-      border-left-color: var(--accent-orange);
-    }
-
-    .session-card.has-error {
-      background: #fef2f2;
-      border-left-color: var(--accent-red);
-    }
-
-    .session-card.shift2 {
-      background: #f8fafc;
-      border-left-color: #64748b;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 6px;
-    }
-
-    .card-category {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--accent-blue);
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-
-    .card-badges {
-      display: flex;
-      gap: 3px;
-      flex-wrap: wrap;
-    }
-
-    .badge {
-      font-size: 9px;
-      padding: 2px 5px;
-      border-radius: 3px;
-      font-weight: 600;
-    }
-
-    .badge.warning { background: var(--accent-orange); color: white; }
-    .badge.error { background: var(--accent-red); color: white; }
-    .badge.has-b { background: var(--accent-purple); color: white; }
-
-    /* Sekcja Trainee */
-    .trainee-section {
-      background: #f0f9ff;
-      border-radius: 6px;
-      padding: 8px;
-      margin-bottom: 6px;
-    }
-
-    .trainee-section.trainee-b {
-      background: #faf5ff;
-    }
-
-    .trainee-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
-    }
-
-    .trainee-label {
-      font-size: 9px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-
-    .trainee-phase {
-      font-size: 9px;
-      font-weight: 600;
-      color: var(--accent-blue);
-      background: #dbeafe;
-      padding: 1px 4px;
-      border-radius: 3px;
-    }
-
-    .trainee-name {
-      font-weight: 600;
-      font-size: 12px;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-    }
-
-    .trainee-exercise {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .exercise-num {
-      font-size: 10px;
-      color: var(--text-secondary);
-    }
-
-    .progress-bar {
-      flex: 1;
-      height: 4px;
-      background: #e2e8f0;
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--accent-green);
-      transition: width 0.3s;
-    }
-
-    .progress-fill.complete {
-      background: var(--accent-blue);
-    }
-
-    .exercise-progress {
-      font-size: 9px;
-      color: var(--text-muted);
-      min-width: 35px;
-      text-align: right;
-    }
-
-    /* Instruktorzy */
-    .instructors-section {
-      margin-top: auto;
-      padding-top: 6px;
-      border-top: 1px dashed var(--border-color);
-    }
-
-    .instructors-label {
-      font-size: 9px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      margin-bottom: 3px;
-    }
-
-    .instructors-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 3px;
-    }
-
-    .instructor-chip {
-      font-size: 10px;
-      background: #e0e7ff;
-      color: #3730a3;
-      padding: 2px 6px;
-      border-radius: 3px;
-    }
-
-    /* ========== MODAL ========== */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-overlay.open {
-      display: flex;
-    }
-
-    .modal {
-      background: var(--bg-card);
-      border-radius: 12px;
-      width: 95%;
-      max-width: 600px;
-      max-height: 90vh;
-      overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-
-    .modal-header {
-      padding: 16px 20px;
-      background: linear-gradient(135deg, #1e293b, #334155);
-      color: white;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .modal-title {
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .modal-subtitle {
-      font-size: 11px;
-      opacity: 0.8;
-      margin-top: 2px;
-    }
-
-    .modal-close {
-      background: rgba(255,255,255,0.1);
-      border: none;
-      color: white;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-close:hover {
-      background: rgba(255,255,255,0.2);
-    }
-
-    .modal-body {
-      padding: 20px;
-      overflow-y: auto;
-      max-height: calc(90vh - 140px);
-    }
-
-    .form-section {
-      margin-bottom: 20px;
-    }
-
-    .form-section-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .form-row.single {
-      grid-template-columns: 1fr;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .form-label {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-secondary);
-    }
-
-    .form-label.required::after {
-      content: ' *';
-      color: var(--accent-red);
-    }
-
-    .form-input, .form-select {
-      padding: 8px 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 13px;
-      background: #fff;
-      width: 100%;
-    }
-
-    .form-input:focus, .form-select:focus {
-      outline: none;
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    .form-checkbox-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 0;
-    }
-
-    .form-checkbox {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
-
-    .form-checkbox-label {
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .validation-warning {
-      background: #fef3c7;
-      border: 1px solid #fcd34d;
-      border-radius: 6px;
-      padding: 10px 12px;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .validation-warning-icon {
-      font-size: 16px;
-    }
-
-    .validation-warning-text {
-      font-size: 12px;
-      color: #92400e;
-    }
-
-    .modal-footer {
-      padding: 16px 20px;
-      background: #f8fafc;
-      border-top: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .modal-footer-left {
-      display: flex;
-      gap: 8px;
-    }
-
-    .modal-footer-right {
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-danger {
-      background: #fef2f2;
-      color: var(--accent-red);
-      border: 1px solid #fecaca;
-    }
-
-    .btn-danger:hover {
-      background: #fee2e2;
-    }
-
-    .btn-success {
-      background: var(--accent-green);
-      color: white;
-    }
-
-    .btn-success:hover {
-      background: #16a34a;
-    }
-
-    /* ========== EMPTY STATE ========== */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-muted);
-    }
-
-    .empty-state h3 {
-      font-size: 18px;
-      margin-bottom: 8px;
-      color: var(--text-secondary);
-    }
-
-    .empty-state p {
-      font-size: 13px;
-    }
-
-    /* ========== LOADING ========== */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      color: var(--text-muted);
-    }
-
-    .loading-spinner {
-      width: 24px;
-      height: 24px;
-      border: 3px solid var(--border-color);
-      border-top-color: var(--accent-blue);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 12px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      z-index: 20;
     }
   </style>
 </head>
-<body>
-  <!-- Kontrolki -->
-  <div class="controls">
-    <div class="control-group">
-      <span class="control-label">Tydzień</span>
-      <select id="week-filter" onchange="applyFilters()">
-        <option value="">Wszystkie</option>
-      </select>
-    </div>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+  <div id="app" class="h-full flex flex-col">
     
-    <div class="control-group">
-      <span class="control-label">Dzień</span>
-      <select id="day-filter" onchange="applyFilters()">
-        <option value="">Wszystkie</option>
-      </select>
-    </div>
-    
-    <div class="control-group">
-      <span class="control-label">Trainee</span>
-      <select id="trainee-filter" onchange="applyFilters()">
-        <option value="">Wszyscy</option>
-      </select>
-    </div>
+    <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 z-30 shadow-sm">
+      <div class="flex items-center gap-4">
+        <h1 class="font-bold text-slate-700 text-lg flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Grafik TWR
+        </h1>
+        
+        <div class="h-6 w-px bg-slate-200 mx-2"></div>
 
-    <button class="btn btn-secondary" onclick="refreshData()">🔄 Odśwież</button>
-
-    <div class="stats">
-      <div class="stat">
-        <span class="stat-dot total"></span>
-        <span>Sesji: <strong id="stat-total">0</strong></span>
-      </div>
-      <div class="stat">
-        <span class="stat-dot warning"></span>
-        <span>Duplikaty: <strong id="stat-warnings">0</strong></span>
-      </div>
-      <div class="stat">
-        <span class="stat-dot error"></span>
-        <span>8h: <strong id="stat-errors">0</strong></span>
-      </div>
-    </div>
-
-    <span id="status" class="status-indicator status-ok">Gotowy</span>
-  </div>
-
-  <!-- Siatka -->
-  <div class="grid-wrapper">
-    <div id="schedule-grid" class="schedule-grid">
-      <div class="loading">
-        <div class="loading-spinner"></div>
-        Ładowanie danych...
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal edycji -->
-  <div id="modal-overlay" class="modal-overlay" onclick="closeModalOnOverlay(event)">
-    <div class="modal">
-      <div class="modal-header">
-        <div>
-          <div class="modal-title" id="modal-title">Edycja sesji</div>
-          <div class="modal-subtitle" id="modal-subtitle"></div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Tydzień</label>
+          <select v-model="selectedWeek" class="bg-slate-100 border-transparent focus:border-blue-500 focus:bg-white rounded text-sm px-3 py-1.5 font-medium transition-colors cursor-pointer outline-none">
+            <option v-for="week in sortedWeeks" :key="week" :value="week">{{ week }}</option>
+          </select>
         </div>
-        <button class="modal-close" onclick="closeModal()">×</button>
+
+        <div class="flex items-center gap-2 ml-4">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Dzień</label>
+          <div class="flex bg-slate-100 p-1 rounded-lg">
+            <button 
+              @click="selectedDay = null"
+              :class="['px-3 py-1 text-xs font-medium rounded-md transition-all', !selectedDay ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700']"
+            >Wszystkie</button>
+            <button 
+              v-for="day in availableDays" 
+              :key="day"
+              @click="selectedDay = day"
+              :class="['px-3 py-1 text-xs font-medium rounded-md transition-all', selectedDay === day ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700']"
+            >
+              {{ day }}
+            </button>
+          </div>
+        </div>
       </div>
+
+      <div class="flex gap-4 text-xs font-medium">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Sesja OK
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span> Ostrzeżenie
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Naruszenie (8h)
+        </span>
+      </div>
+    </header>
+
+    <div v-if="loading" class="flex-1 flex items-center justify-center text-slate-400 gap-3">
+      <svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Ładowanie danych...
+    </div>
+
+    <main v-else class="flex-1 overflow-y-auto p-6 scroll-smooth">
       
-      <div class="modal-body">
-        <div id="modal-warnings"></div>
+      <div v-if="processedData.length === 0" class="text-center py-20">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4 text-slate-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-slate-900">Brak danych dla wybranych filtrów</h3>
+        <p class="text-slate-500 mt-1">Spróbuj wybrać inny tydzień lub dodaj wpisy w tabeli GRAFIK.</p>
+      </div>
 
-        <div class="form-section">
-          <div class="form-section-title">Czas i miejsce</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Data</label>
-              <select id="edit-data" class="form-select" disabled>
-                <!-- Wypełniane dynamicznie -->
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Slot czasowy</label>
-              <select id="edit-slot" class="form-select" disabled>
-                <!-- Wypełniane dynamicznie -->
-              </select>
-            </div>
-          </div>
-          <div class="form-row single">
-            <div class="form-group">
-              <label class="form-label">Kategoria sesji</label>
-              <select id="edit-kategoria" class="form-select">
-                <option value="">— wybierz —</option>
-              </select>
-            </div>
-          </div>
+      <div v-for="dayGroup in processedData" :key="dayGroup.dayName" class="mb-10 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        
+        <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-baseline gap-3 sticky top-0 z-20">
+          <h2 class="text-xl font-bold text-slate-800">{{ dayGroup.dayName }}</h2>
+          <span class="text-sm font-medium text-slate-500">Liczba sesji: {{ dayGroup.totalSessions }}</span>
         </div>
 
-        <div class="form-section">
-          <div class="form-section-title">Trainee A (główny)</div>
-          <div class="form-row single">
-            <div class="form-group">
-              <label class="form-label required">Trainee</label>
-              <select id="edit-traineeA" class="form-select">
-                <option value="">— wybierz —</option>
-              </select>
+        <div class="relative grid grid-cols-[80px_1fr]">
+          
+          <div class="border-r border-slate-200 bg-slate-50/50">
+            <div 
+              v-for="slot in dayGroup.uniqueSlots" 
+              :key="slot" 
+              class="h-[90px] flex flex-col items-center justify-center border-b border-slate-100 text-xs font-semibold text-slate-500"
+            >
+              {{ slot }}
             </div>
           </div>
-        </div>
 
-        <div class="form-section">
-          <div class="form-section-title">Trainee B (opcjonalnie)</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Trainee</label>
-              <select id="edit-traineeB" class="form-select">
-                <option value="">— brak —</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Aktywny (C)</label>
-              <div class="form-checkbox-group">
-                <input type="checkbox" id="edit-c" class="form-checkbox">
-                <label for="edit-c" class="form-checkbox-label">Zalicz ćwiczenie dla Trainee B</label>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 divide-x divide-slate-100">
+            
+            <div v-for="station in stations" :key="station.id" class="relative bg-white min-h-[100px]">
+              
+              <div class="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-100 py-2 text-center shadow-sm">
+                <span 
+                  class="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider text-white"
+                  :style="{ backgroundColor: station.color }"
+                >
+                  {{ station.name }}
+                </span>
+              </div>
+
+              <div class="grid relative" :style="`grid-template-rows: repeat(${dayGroup.uniqueSlots.length}, 90px);`">
+                
+                <div 
+                  v-for="i in dayGroup.uniqueSlots.length" 
+                  class="border-b border-slate-50 w-full col-start-1 row-start-auto pointer-events-none"
+                  :style="`grid-row: ${i}`"
+                ></div>
+
+                <div 
+                  v-for="event in getEventsForStation(dayGroup, station.id)" 
+                  :key="event.id"
+                  @click="focusRecord(event.record)"
+                  class="m-1 session-card rounded-lg border-l-4 p-2.5 cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                  :class="getCardClasses(event.record)"
+                  :style="{ 
+                    gridRowStart: event.startIdx + 1, 
+                    gridRowEnd: `span ${event.span}`,
+                    borderColor: station.color,
+                    backgroundColor: getCardBackground(event.record)
+                  }"
+                >
+                  <div class="absolute top-2 right-2 flex gap-1">
+                    <span v-if="event.record.duplikaty" class="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold border border-orange-200">DUPL</span>
+                    <span v-if="event.record.narusza8h" class="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold border border-red-200">8H</span>
+                    <span v-if="event.record.c" class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold border border-blue-200">A+B</span>
+                  </div>
+
+                  <div>
+                    <div class="font-bold text-slate-800 text-sm leading-tight mb-1">
+                      {{ getTraineeName(event.record.traineeA) }}
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-1 mb-2">
+                       <span class="text-[10px] px-1.5 rounded bg-white/60 border border-slate-200 text-slate-600 font-medium">
+                         Ćw. {{ event.record.exNrA }}
+                       </span>
+                       <span v-if="event.record.instruktorzy && event.record.instruktorzy.length" class="text-[10px] px-1.5 rounded bg-yellow-50 border border-yellow-200 text-yellow-700 font-medium">
+                         Instr: {{ event.record.instruktorzy.length }}
+                       </span>
+                    </div>
+                    
+                    <div v-if="event.record.c && event.record.traineeB" class="mt-2 pt-2 border-t border-slate-200/60">
+                      <div class="text-[10px] uppercase text-slate-400 font-semibold tracking-wide">Trainee B</div>
+                      <div class="font-semibold text-slate-700 text-xs">{{ getTraineeName(event.record.traineeB) }}</div>
+                      <div class="text-[10px] text-slate-500">Ćw. {{ event.record.exNrB }}</div>
+                    </div>
+                  </div>
+
+                  <div v-if="event.span > 1" class="mt-auto pt-2 text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    {{ getMergedTimeRange(event) }}
+                  </div>
+
+                </div>
+
               </div>
             </div>
           </div>
         </div>
-
-        <div class="form-section">
-          <div class="form-section-title">Instruktorzy</div>
-          <div class="form-row single">
-            <div class="form-group">
-              <label class="form-label">Przypisani instruktorzy</label>
-              <select id="edit-instruktorzy" class="form-select" multiple size="4">
-                <!-- Wypełniane dynamicznie -->
-              </select>
-              <small style="color: var(--text-muted); font-size: 10px; margin-top: 4px;">
-                Przytrzymaj Ctrl/Cmd aby wybrać wielu
-              </small>
-            </div>
-          </div>
-        </div>
       </div>
-
-      <div class="modal-footer">
-        <div class="modal-footer-left">
-          <button class="btn btn-danger" onclick="clearForm()">🗑️ Wyczyść pola</button>
-        </div>
-        <div class="modal-footer-right">
-          <button class="btn btn-secondary" onclick="closeModal()">Anuluj</button>
-          <button class="btn btn-success" onclick="saveRecord()">💾 Zapisz</button>
-        </div>
-      </div>
-    </div>
+    </main>
   </div>
 
   <script>
-    // ============================================
-    // KONFIGURACJA
-    // ============================================
-    const SECOND_SHIFT_START = '14:00'; // Od tej godziny = II zmiana
-    const DAY_ORDER = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+    const { createApp, ref, computed, onMounted } = Vue;
 
-    // ============================================
-    // STAN APLIKACJI
-    // ============================================
-    let allRecords = [];
-    let filteredRecords = [];
-    let currentEditRecord = null;
+    createApp({
+      setup() {
+        const records = ref([]);
+        const loading = ref(true);
+        const selectedWeek = ref('');
+        const selectedDay = ref(null);
 
-    // Dane pomocnicze z powiązanych tabel
-    let traineeOptions = [];    // z Trainee_DB
-    let instructorOptions = []; // z R_Instr_Ewidencja
-    let categoryOptions = [];   // z Kategorie
-    let slotOptions = [];       // z Sesje
-    let dataOptions = [];       // z Kalendarz_DniPracy
+        // Konfiguracja Stanowisk - tutaj możesz dodać więcej lub zmienić nazwy
+        // Obecnie schemat ma tylko TWR1, więc mapujemy wszystko do TWR1, 
+        // ale przygotowałem strukturę pod 6 stanowisk
+        const stations = [
+          { id: 'TWR1', name: 'TWR 1', color: '#3b82f6' },
+          { id: 'TWR2', name: 'TWR 2', color: '#8b5cf6' },
+          { id: 'TWR3', name: 'TWR 3', color: '#06b6d4' },
+          { id: 'TWR4', name: 'TWR 4', color: '#10b981' },
+          { id: 'TWR5', name: 'TWR 5', color: '#f59e0b' },
+          { id: 'TWR6', name: 'TWR 6', color: '#ef4444' },
+        ];
 
-    // Mapy do szybkiego lookup
-    const traineeMap = new Map();
-    const instructorMap = new Map();
-
-    // Filtry - unikalne wartości
-    const weeks = new Set();
-    const days = new Set();
-    const trainees = new Map();
-
-    // ============================================
-    // INICJALIZACJA GRIST
-    // ============================================
-    grist.ready({
-      requiredAccess: 'full'  // Wymagane do edycji!
-      // BEZ columns: {} - widget dostaje WSZYSTKIE kolumny automatycznie
-    });
-
-    // Nasłuchuj na zmiany rekordów
-    grist.onRecords(async (records) => {
-      console.log('=== onRecords ===');
-      console.log('Otrzymano rekordów:', records.length);
-      if (records.length > 0) {
-        console.log('Przykładowy rekord:', JSON.stringify(records[0], null, 2));
-        console.log('Dostępne kolumny:', Object.keys(records[0]));
-      }
-      
-      allRecords = records.map(r => mapRecord(r));
-      processData();
-      applyFilters();
-    });
-
-    // Ładowanie danych pomocniczych przy starcie
-    loadReferenceData();
-
-    // ============================================
-    // ŁADOWANIE DANYCH REFERENCYJNYCH
-    // ============================================
-    async function loadReferenceData() {
-      try {
-        updateStatus('Ładowanie...', 'saving');
-
-        // Pobierz listę dostępnych tabel
-        let tables = [];
-        try {
-          tables = await grist.docApi.listTables();
-          console.log('Dostępne tabele:', tables);
-        } catch (e) {
-          console.warn('Nie można pobrać listy tabel (wymaga full access):', e.message);
-          // Kontynuuj bez danych referencyjnych
-          updateStatus('Tryb read-only', 'ok');
-          return;
-        }
-
-        // Trainee_DB
-        if (tables.includes('Trainee_DB')) {
-          const traineeData = await grist.docApi.fetchTable('Trainee_DB');
-          traineeOptions = parseTableData(traineeData);
-          traineeOptions.forEach(t => {
-            traineeMap.set(t.id, t);
+        // === DATA FETCHING ===
+        onMounted(() => {
+          grist.ready({
+            requiredAccess: 'full',
+            columns: [
+              // Mapowanie kolumn z Grist
+              { name: 'Data_Tydzien', title: 'Tydzień' },
+              { name: 'Data_DzienPL', title: 'Dzień PL' },
+              { name: 'Slot_Godz_od', title: 'Godz. od' },
+              { name: 'Slot_Godz_do', title: 'Godz. do' },
+              { name: 'TWR1_TraineeA', title: 'Trainee A', type: 'Ref' },
+              { name: 'TWR1_TraineeB', title: 'Trainee B', type: 'Ref' },
+              { name: 'TWR1_Instr', title: 'Instruktorzy', type: 'RefList' },
+              { name: 'exNrA', title: 'Nr Ćw A' },
+              { name: 'exNrB', title: 'Nr Ćw B' },
+              { name: 'C', title: 'Wspólna (C)' },
+              { name: 'TraineeDuplikaty', title: 'Duplikaty' },
+              { name: 'TraineeA_Narusza8h', title: 'Narusza 8h A' },
+              { name: 'TraineeB_Narusza8h', title: 'Narusza 8h B' },
+              // Jeśli masz kolumny dla TWR2, dodaj je tutaj
+            ]
           });
-          console.log('Załadowano Trainee_DB:', traineeOptions.length);
-        }
 
-        // R_Instr_Ewidencja
-        if (tables.includes('R_Instr_Ewidencja')) {
-          const instrData = await grist.docApi.fetchTable('R_Instr_Ewidencja');
-          instructorOptions = parseTableData(instrData);
-          instructorOptions.forEach(i => {
-            instructorMap.set(i.id, i);
+          grist.onRecords((data) => {
+            records.value = data.map(normalizeRecord);
+            loading.value = false;
+            
+            // Auto-select current week if nothing selected
+            if (!selectedWeek.value && sortedWeeks.value.length > 0) {
+              selectedWeek.value = sortedWeeks.value[sortedWeeks.value.length - 1]; // Ostatni tydzień domyślnie
+            }
           });
-          console.log('Załadowano R_Instr_Ewidencja:', instructorOptions.length);
+        });
+
+        function normalizeRecord(rec) {
+          return {
+            id: rec.id,
+            tydzien: rec.Data_Tydzien,
+            dzien: rec.Data_DzienPL,
+            godzOd: rec.Slot_Godz_od,
+            godzDo: rec.Slot_Godz_do,
+            // Zakładamy, że dane z tabeli to TWR1. Jeśli dodasz kolumnę 'Stanowisko', użyj jej tutaj.
+            stationId: 'TWR1', 
+            traineeA: rec.TWR1_TraineeA, // ID or object depending on serialization
+            traineeB: rec.TWR1_TraineeB,
+            instruktorzy: rec.TWR1_Instr || [],
+            exNrA: rec.exNrA,
+            exNrB: rec.exNrB,
+            c: rec.C,
+            duplikaty: rec.TraineeDuplikaty,
+            narusza8h: rec.TraineeA_Narusza8h || rec.TraineeB_Narusza8h
+          };
         }
 
-        // Kategorie
-        if (tables.includes('Kategorie')) {
-          const katData = await grist.docApi.fetchTable('Kategorie');
-          categoryOptions = parseTableData(katData);
-          console.log('Załadowano Kategorie:', categoryOptions.length);
-        }
-
-        // Sesje (sloty czasowe)
-        if (tables.includes('Sesje')) {
-          const slotData = await grist.docApi.fetchTable('Sesje');
-          slotOptions = parseTableData(slotData);
-          console.log('Załadowano Sesje:', slotOptions.length);
-        }
-
-        // Kalendarz_DniPracy
-        if (tables.includes('Kalendarz_DniPracy')) {
-          const dataData = await grist.docApi.fetchTable('Kalendarz_DniPracy');
-          dataOptions = parseTableData(dataData);
-          console.log('Załadowano Kalendarz_DniPracy:', dataOptions.length);
-        }
-
-        // Wypełnij selecty w modalu
-        populateModalSelects();
-        updateStatus('Gotowy', 'ok');
-
-      } catch (e) {
-        console.error('Błąd ładowania danych referencyjnych:', e);
-        updateStatus('Błąd ładowania', 'error');
-      }
-    }
-
-    function parseTableData(tableData) {
-      if (!tableData || !tableData.id) return [];
-      const result = [];
-      const len = tableData.id.length;
-      for (let i = 0; i < len; i++) {
-        const row = { id: tableData.id[i] };
-        for (const col in tableData) {
-          if (col !== 'id' && Array.isArray(tableData[col])) {
-            row[col] = tableData[col][i];
-          }
-        }
-        result.push(row);
-      }
-      return result;
-    }
-
-    function populateModalSelects() {
-      // Trainee A i B
-      const traineeHTML = '<option value="">— wybierz —</option>' +
-        traineeOptions
-          .filter(t => t.Dostepny !== false) // Tylko dostępni
-          .map(t => {
-            const label = t.Trainee_NazwiskoImie || t.ID_Trainee_Faza || `#${t.id}`;
-            const faza = t.Faza ? ` (F${getRefId(t.Faza)})` : '';
-            return `<option value="${t.id}">${label}${faza}</option>`;
-          }).join('');
-
-      document.getElementById('edit-traineeA').innerHTML = traineeHTML;
-      document.getElementById('edit-traineeB').innerHTML = 
-        '<option value="">— brak —</option>' + traineeHTML.replace('— wybierz —', '— brak —');
-
-      // Instruktorzy
-      const instrHTML = instructorOptions.map(i => {
-        const label = `${i.Imie || ''} ${i.Nazwisko || ''}`.trim() || i.ID2 || `#${i.id}`;
-        return `<option value="${i.id}">${label}</option>`;
-      }).join('');
-      document.getElementById('edit-instruktorzy').innerHTML = instrHTML;
-
-      // Kategorie
-      const katHTML = '<option value="">— wybierz —</option>' +
-        categoryOptions.map(k => {
-          const label = k.KategoriaSesji || `#${k.id}`;
-          return `<option value="${k.id}">${label}</option>`;
-        }).join('');
-      document.getElementById('edit-kategoria').innerHTML = katHTML;
-    }
-
-    // ============================================
-    // MAPOWANIE REKORDÓW
-    // ============================================
-    function mapRecord(rec) {
-      if (!rec) return null;
-
-      // Debug - pokaż co mamy w rekordzie
-      // console.log('Mapowanie rekordu:', rec.id, 'Data:', rec.Data, 'Slot:', rec.Slot);
-
-      return {
-        id: rec.id,
+        // === COMPUTED HELPERS ===
         
-        // Referencje - Grist przekazuje je jako liczby (ID) lub obiekty
-        data: getRefId(rec.Data),
-        slot: getRefId(rec.Slot),
-        traineeA: getRefId(rec.TWR1_TraineeA),
-        traineeB: getRefId(rec.TWR1_TraineeB),
-        instruktorzy: getRefListIds(rec.TWR1_Instr),
-        kategoria: getRefId(rec.TWR_Kat),
-        c: rec.C || false,
-
-        // Wartości z formuł (tylko do odczytu)
-        godzOd: rec.Slot_Godz_od || '',
-        godzDo: rec.Slot_Godz_do || '',
-        dzienPL: rec.Data_DzienPL || '',
-        tydzien: rec.Data_Tydzien || '',
-        exNrA: rec.exNrA,
-        exNrB: rec.exNrB,
-        wymagane: rec.TWR1_Trainee1_Wymagane || 0,
-        duplikaty: rec.TraineeDuplikaty || false,
-        narusza8hA: rec.TraineeA_Narusza8h || false,
-        narusza8hB: rec.TraineeB_Narusza8h || false,
-        traineeA_nazwa: rec.TraineeA_Nazwa || '',
-        traineeB_nazwa: rec.TraineeB_Nazwa || '',
-        traineeA_faza: rec.TWR1_TraineeA_Faza || '',
-        traineeB_faza: rec.TWR1_TraineeB_Faza || '',
-        instr_lista: rec.Instr_lista || '',
-        kat_nazwa: rec.Kat_Nazwa || '',
-      };
-    }
-
-    function getRefId(value) {
-      if (!value) return null;
-      if (typeof value === 'number') return value > 0 ? value : null;
-      if (value && typeof value === 'object' && value.id) return value.id;
-      return null;
-    }
-
-    function getRefListIds(value) {
-      if (!value) return [];
-      if (Array.isArray(value)) {
-        // Może być ['L', id1, id2, ...] lub [id1, id2, ...]
-        if (value[0] === 'L') {
-          return value.slice(1).filter(v => typeof v === 'number' && v > 0);
-        }
-        return value.filter(v => typeof v === 'number' && v > 0);
-      }
-      return [];
-    }
-
-    // ============================================
-    // PRZETWARZANIE DANYCH
-    // ============================================
-    function processData() {
-      weeks.clear();
-      days.clear();
-      trainees.clear();
-
-      allRecords.forEach(r => {
-        if (!r) return;
-        if (r.tydzien) weeks.add(r.tydzien);
-        if (r.dzienPL) days.add(r.dzienPL);
-        if (r.traineeA) trainees.set(r.traineeA, r.traineeA_nazwa || `#${r.traineeA}`);
-        if (r.traineeB) trainees.set(r.traineeB, r.traineeB_nazwa || `#${r.traineeB}`);
-      });
-
-      updateFilterOptions();
-    }
-
-    function updateFilterOptions() {
-      // Tydzień
-      const wSel = document.getElementById('week-filter');
-      const wVal = wSel.value;
-      wSel.innerHTML = '<option value="">Wszystkie</option>' +
-        [...weeks].sort().map(w => 
-          `<option value="${w}" ${w === wVal ? 'selected' : ''}>${w}</option>`
-        ).join('');
-
-      // Dzień
-      const dSel = document.getElementById('day-filter');
-      const dVal = dSel.value;
-      dSel.innerHTML = '<option value="">Wszystkie</option>' +
-        [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b)).map(d =>
-          `<option value="${d}" ${d === dVal ? 'selected' : ''}>${d}</option>`
-        ).join('');
-
-      // Trainee
-      const tSel = document.getElementById('trainee-filter');
-      const tVal = tSel.value;
-      tSel.innerHTML = '<option value="">Wszyscy</option>' +
-        [...trainees.entries()].sort((a, b) => a[1].localeCompare(b[1])).map(([id, name]) =>
-          `<option value="${id}" ${String(id) === tVal ? 'selected' : ''}>${name}</option>`
-        ).join('');
-    }
-
-    // ============================================
-    // FILTROWANIE
-    // ============================================
-    function applyFilters() {
-      const wF = document.getElementById('week-filter').value;
-      const dF = document.getElementById('day-filter').value;
-      const tF = document.getElementById('trainee-filter').value;
-
-      filteredRecords = allRecords.filter(r => {
-        if (!r) return false;
-        if (wF && r.tydzien !== wF) return false;
-        if (dF && r.dzienPL !== dF) return false;
-        if (tF) {
-          const t = parseInt(tF);
-          if (r.traineeA !== t && r.traineeB !== t) return false;
-        }
-        return true;
-      });
-
-      // Statystyki
-      document.getElementById('stat-total').textContent = filteredRecords.length;
-      document.getElementById('stat-warnings').textContent = 
-        filteredRecords.filter(r => r.duplikaty).length;
-      document.getElementById('stat-errors').textContent = 
-        filteredRecords.filter(r => r.narusza8hA || r.narusza8hB).length;
-
-      render();
-    }
-
-    // ============================================
-    // RENDEROWANIE
-    // ============================================
-    function render() {
-      const grid = document.getElementById('schedule-grid');
-
-      // Debug info
-      console.log('=== RENDER ===');
-      console.log('filteredRecords:', filteredRecords.length);
-      if (filteredRecords.length > 0) {
-        const sample = filteredRecords[0];
-        console.log('Przykład po mapowaniu:', {
-          id: sample.id,
-          dzienPL: sample.dzienPL,
-          tydzien: sample.tydzien,
-          godzOd: sample.godzOd,
-          traineeA: sample.traineeA,
-          traineeA_nazwa: sample.traineeA_nazwa
+        const sortedWeeks = computed(() => {
+          const weeks = new Set(records.value.map(r => r.tydzien).filter(Boolean));
+          return Array.from(weeks).sort();
         });
-      }
 
-      if (!filteredRecords.length) {
-        grid.innerHTML = `
-          <div class="empty-state" style="grid-column: 1 / -1;">
-            <h3>Brak sesji do wyświetlenia</h3>
-            <p>Zmień filtry lub sprawdź czy tabela GRAFIK ma dane.</p>
-            <p style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">
-              Sprawdź konsolę (F12) aby zobaczyć diagnostykę.
-            </p>
-          </div>
-        `;
-        return;
-      }
+        const availableDays = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
 
-      let html = '';
+        // Core Processing Logic
+        const processedData = computed(() => {
+          if (!selectedWeek.value) return [];
 
-      // Grupuj po dniach
-      const uniqueDays = [...new Set(filteredRecords.map(r => r.dzienPL))]
-        .filter(Boolean)
-        .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
-
-      uniqueDays.forEach(day => {
-        const dayRecords = filteredRecords.filter(r => r.dzienPL === day);
-        const dayWeek = dayRecords[0]?.tydzien || '';
-
-        // Nagłówek dnia
-        html += `
-          <div class="day-header">
-            <span class="day-name">${day}</span>
-            <span class="day-date">Tydzień ${dayWeek}</span>
-            <span class="day-stats">${dayRecords.length} sesji</span>
-          </div>
-        `;
-
-        // Unikalne sloty dla tego dnia
-        const daySlots = [...new Set(dayRecords.map(r => r.godzOd))]
-          .filter(Boolean)
-          .sort();
-
-        daySlots.forEach(slot => {
-          const slotRecords = dayRecords.filter(r => r.godzOd === slot);
-          const isShift2 = isSecondShift(slot);
-          const shiftClass = isShift2 ? 'shift2' : '';
-          const godzDo = slotRecords[0]?.godzDo || '';
-
-          // Etykieta slotu
-          html += `
-            <div class="slot-label ${shiftClass}">
-              <span class="slot-time">${slot}</span>
-              <span class="slot-time-end">${godzDo}</span>
-              <span class="shift-badge ${isShift2 ? 'shift2' : 'shift1'}">${isShift2 ? 'II' : 'I'}</span>
-            </div>
-          `;
-
-          // Komórka z kartami sesji
-          if (slotRecords.length > 0) {
-            html += `<div class="grid-cell ${shiftClass}">`;
-            slotRecords.forEach(r => {
-              html += renderCard(r, isShift2);
-            });
-            html += '</div>';
-          } else {
-            html += `<div class="grid-cell empty ${shiftClass}" onclick="openNewRecord('${day}', '${slot}')"></div>`;
+          // 1. Filtrowanie
+          let filtered = records.value.filter(r => r.tydzien === selectedWeek.value);
+          if (selectedDay.value) {
+            filtered = filtered.filter(r => r.dzien === selectedDay.value);
           }
+
+          // 2. Grupowanie po Dniach
+          // Sortujemy dni wg kolejności w tygodniu
+          const dayGroups = [];
+          
+          availableDays.forEach(dayName => {
+            const dayRecords = filtered.filter(r => r.dzien === dayName);
+            if (dayRecords.length === 0) return;
+
+            // Znajdź unikalne sloty czasowe dla tego dnia (posortowane)
+            const uniqueSlots = [...new Set(dayRecords.map(r => r.godzOd))].sort();
+
+            // Cache'owanie przetworzonych eventów per stacja
+            const stationEvents = {};
+            stations.forEach(st => {
+               stationEvents[st.id] = mergeEvents(dayRecords.filter(r => r.stationId === st.id), uniqueSlots);
+            });
+
+            dayGroups.push({
+              dayName,
+              uniqueSlots,
+              totalSessions: dayRecords.length,
+              stationEvents
+            });
+          });
+
+          return dayGroups;
         });
-      });
 
-      grid.innerHTML = html;
-    }
+        // === MERGING LOGIC (Magia "Rozciągania") ===
+        function mergeEvents(stationRecords, timeSlots) {
+          const events = [];
+          if (!stationRecords.length) return events;
 
-    function renderCard(r, isShift2) {
-      const hasW = r.duplikaty;
-      const hasE = r.narusza8hA || r.narusza8hB;
-      const hasB = r.traineeB && r.c;
+          // Mapa rekordów po czasie startu dla szybkiego dostępu
+          const recordsMap = new Map();
+          stationRecords.forEach(r => recordsMap.set(r.godzOd, r));
 
-      let cardClass = 'session-card';
-      if (isShift2) cardClass += ' shift2';
-      if (hasE) cardClass += ' has-error';
-      else if (hasW) cardClass += ' has-warning';
+          let i = 0;
+          while (i < timeSlots.length) {
+            const currentSlot = timeSlots[i];
+            const currentRec = recordsMap.get(currentSlot);
 
-      const prog = r.wymagane > 0 ? Math.min(100, Math.round((r.exNrA / r.wymagane) * 100)) : 0;
-      const progClass = prog >= 100 ? 'complete' : '';
+            if (!currentRec) {
+              i++;
+              continue;
+            }
 
-      const traineeA = r.traineeA_nazwa || `#${r.traineeA || '-'}`;
-      const traineeB = r.traineeB_nazwa || `#${r.traineeB || '-'}`;
-      const fazaA = r.traineeA_faza || '';
-      const fazaB = r.traineeB_faza || '';
+            // Start nowego bloku
+            let span = 1;
+            
+            // Sprawdź kolejne sloty
+            let j = i + 1;
+            while (j < timeSlots.length) {
+              const nextSlot = timeSlots[j];
+              const nextRec = recordsMap.get(nextSlot);
+              
+              if (shouldMerge(currentRec, nextRec)) {
+                span++;
+                j++;
+              } else {
+                break;
+              }
+            }
 
-      return `
-        <div class="${cardClass}" onclick="openEditModal(${r.id})">
-          <div class="card-header">
-            <span class="card-category">${r.kat_nazwa || 'Brak kategorii'}</span>
-            <div class="card-badges">
-              ${hasB ? '<span class="badge has-b" title="Z Trainee B">+B</span>' : ''}
-              ${hasW ? '<span class="badge warning" title="Duplikat: A=B">!</span>' : ''}
-              ${hasE ? '<span class="badge error" title="Naruszenie reguły 8h">8h</span>' : ''}
-            </div>
-          </div>
+            // Dodaj event
+            events.push({
+              id: currentRec.id, // ID pierwszego rekordu w grupie
+              record: currentRec,
+              startSlot: currentSlot,
+              startIdx: i, // Index wiersza w gridzie
+              span: span,
+              endRecord: j > i + 1 ? recordsMap.get(timeSlots[j-1]) : currentRec
+            });
 
-          <div class="trainee-section">
-            <div class="trainee-header">
-              <span class="trainee-label">Trainee A</span>
-              ${fazaA ? `<span class="trainee-phase">${fazaA}</span>` : ''}
-            </div>
-            <div class="trainee-name">${traineeA}</div>
-            <div class="trainee-exercise">
-              <span class="exercise-num">Ćw. ${r.exNrA || '-'}</span>
-              <div class="progress-bar">
-                <div class="progress-fill ${progClass}" style="width: ${prog}%"></div>
-              </div>
-              <span class="exercise-progress">${r.exNrA || 0}/${r.wymagane || '-'}</span>
-            </div>
-          </div>
+            // Przeskocz przetworzone sloty
+            i += span;
+          }
+          return events;
+        }
 
-          ${hasB ? `
-            <div class="trainee-section trainee-b">
-              <div class="trainee-header">
-                <span class="trainee-label">Trainee B</span>
-                ${fazaB ? `<span class="trainee-phase">${fazaB}</span>` : ''}
-              </div>
-              <div class="trainee-name">${traineeB}</div>
-              <div class="trainee-exercise">
-                <span class="exercise-num">Ćw. ${r.exNrB || '-'}</span>
-              </div>
-            </div>
-          ` : ''}
+        // Warunek łączenia kart
+        function shouldMerge(rec1, rec2) {
+          if (!rec1 || !rec2) return false;
+          
+          // Logika: Muszą być ci sami Trainee, ta sama kategoria (C) i ci sami instruktorzy
+          // Można to poluzować w zależności od potrzeb
+          
+          const sameTraineeA = rec1.traineeA === rec2.traineeA;
+          const sameTraineeB = rec1.traineeB === rec2.traineeB;
+          const sameType = rec1.c === rec2.c;
+          
+          // Porównanie instruktorów (tablice)
+          const instr1 = (rec1.instruktorzy || []).sort().join(',');
+          const instr2 = (rec2.instruktorzy || []).sort().join(',');
+          const sameInstr = instr1 === instr2;
 
-          <div class="instructors-section">
-            <div class="instructors-label">Instruktorzy</div>
-            <div class="instructors-list">
-              ${formatInstructors(r.instr_lista)}
-            </div>
-          </div>
-        </div>
-      `;
-    }
+          // Ważne: Sprawdzamy też czy ćwiczenie jest to samo. 
+          // Jeśli zmieniło się ćwiczenie, chcemy nową kartę (chyba że wolisz inaczej)
+          const sameEx = rec1.exNrA === rec2.exNrA;
 
-    function formatInstructors(lista) {
-      if (!lista || lista === '—') {
-        return '<span style="color: var(--text-muted)">— brak —</span>';
+          return sameTraineeA && sameTraineeB && sameType && sameInstr && sameEx;
+        }
+
+        // === HELPERS ===
+
+        function getEventsForStation(dayGroup, stationId) {
+          return dayGroup.stationEvents[stationId] || [];
+        }
+
+        function getCardClasses(rec) {
+          // Błędy mają priorytet nad ostrzeżeniami
+          if (rec.narusza8h) return 'border-red-500';
+          if (rec.duplikaty) return 'border-orange-400';
+          return 'border-transparent'; // Kolor jest ustawiany dynamicznie w style inline
+        }
+
+        function getCardBackground(rec) {
+           if (rec.narusza8h) return '#fef2f2'; // red-50
+           if (rec.duplikaty) return '#fff7ed'; // orange-50
+           return '#ffffff'; // white
+        }
+
+        function getTraineeName(traineeField) {
+          if (!traineeField) return '-';
+          // Grist często zwraca obiekt referencyjny. Jeśli to string, to OK.
+          // Zakładam, że w kolumnie jest ustawione "Show Column" na NazwiskoImie lub ID.
+          // Jeśli dostajemy surowe ID, przydałoby się zmapować, ale tutaj wyświetlamy to co przyjdzie.
+          return String(traineeField); 
+        }
+
+        function getMergedTimeRange(event) {
+          const start = event.record.godzOd;
+          const end = event.endRecord.godzDo;
+          return `${start} - ${end}`;
+        }
+
+        function focusRecord(rec) {
+          grist.setCursorPos({ rowId: rec.id });
+        }
+
+        return {
+          records,
+          loading,
+          selectedWeek,
+          selectedDay,
+          sortedWeeks,
+          availableDays,
+          stations,
+          processedData,
+          getEventsForStation,
+          getCardClasses,
+          getCardBackground,
+          getTraineeName,
+          getMergedTimeRange,
+          focusRecord
+        };
       }
-      return lista.split(',')
-        .map(n => n.trim())
-        .filter(Boolean)
-        .map(n => `<span class="instructor-chip">${n}</span>`)
-        .join('');
-    }
-
-    function isSecondShift(time) {
-      if (!time) return false;
-      return time >= SECOND_SHIFT_START;
-    }
-
-    // ============================================
-    // MODAL - EDYCJA
-    // ============================================
-    function openEditModal(recordId) {
-      currentEditRecord = allRecords.find(r => r.id === recordId);
-      if (!currentEditRecord) return;
-
-      const r = currentEditRecord;
-
-      document.getElementById('modal-title').textContent = `Edycja sesji #${r.id}`;
-      document.getElementById('modal-subtitle').textContent = 
-        `${r.dzienPL} | ${r.godzOd} - ${r.godzDo} | Tydzień ${r.tydzien}`;
-
-      // Wypełnij formularz
-      document.getElementById('edit-traineeA').value = r.traineeA || '';
-      document.getElementById('edit-traineeB').value = r.traineeB || '';
-      document.getElementById('edit-c').checked = r.c || false;
-      document.getElementById('edit-kategoria').value = r.kategoria || '';
-
-      // Instruktorzy (multi-select)
-      const instrSelect = document.getElementById('edit-instruktorzy');
-      Array.from(instrSelect.options).forEach(opt => {
-        opt.selected = r.instruktorzy.includes(parseInt(opt.value));
-      });
-
-      // Walidacje
-      updateModalWarnings(r);
-
-      // Otwórz modal
-      document.getElementById('modal-overlay').classList.add('open');
-
-      // Powiadom Grist o wyborze
-      grist.setCursorPos({ rowId: recordId });
-    }
-
-    function openNewRecord(day, slot) {
-      // Na razie tylko informacja - tworzenie nowych rekordów wymaga dodatkowej logiki
-      alert(`Tworzenie nowej sesji:\nDzień: ${day}\nSlot: ${slot}\n\nUtwórz rekord bezpośrednio w tabeli GRAFIK.`);
-    }
-
-    function updateModalWarnings(r) {
-      let warnings = [];
-
-      if (r.duplikaty) {
-        warnings.push('⚠️ Trainee A i B są tą samą osobą!');
-      }
-      if (r.narusza8hA) {
-        warnings.push('⚠️ Trainee A narusza regułę 8h odpoczynku');
-      }
-      if (r.narusza8hB) {
-        warnings.push('⚠️ Trainee B narusza regułę 8h odpoczynku');
-      }
-
-      const warningsDiv = document.getElementById('modal-warnings');
-      if (warnings.length > 0) {
-        warningsDiv.innerHTML = `
-          <div class="validation-warning">
-            <span class="validation-warning-icon">⚠️</span>
-            <div class="validation-warning-text">
-              ${warnings.join('<br>')}
-            </div>
-          </div>
-        `;
-      } else {
-        warningsDiv.innerHTML = '';
-      }
-    }
-
-    function closeModal() {
-      document.getElementById('modal-overlay').classList.remove('open');
-      currentEditRecord = null;
-    }
-
-    function closeModalOnOverlay(event) {
-      if (event.target === document.getElementById('modal-overlay')) {
-        closeModal();
-      }
-    }
-
-    function clearForm() {
-      document.getElementById('edit-traineeA').value = '';
-      document.getElementById('edit-traineeB').value = '';
-      document.getElementById('edit-c').checked = false;
-      document.getElementById('edit-kategoria').value = '';
-      
-      const instrSelect = document.getElementById('edit-instruktorzy');
-      Array.from(instrSelect.options).forEach(opt => opt.selected = false);
-    }
-
-    // ============================================
-    // ZAPIS DO GRIST
-    // ============================================
-    async function saveRecord() {
-      if (!currentEditRecord) return;
-
-      const traineeA = parseInt(document.getElementById('edit-traineeA').value) || 0;
-      const traineeB = parseInt(document.getElementById('edit-traineeB').value) || 0;
-      const cValue = document.getElementById('edit-c').checked;
-      const kategoria = parseInt(document.getElementById('edit-kategoria').value) || 0;
-
-      // Instruktorzy (RefList)
-      const instrSelect = document.getElementById('edit-instruktorzy');
-      const selectedInstr = Array.from(instrSelect.selectedOptions).map(opt => parseInt(opt.value));
-
-      // Przygotuj dane do aktualizacji
-      const updates = {
-        TWR1_TraineeA: traineeA,
-        TWR1_TraineeB: traineeB,
-        C: cValue,
-        TWR_Kat: kategoria,
-        // RefList musi być w formacie ['L', id1, id2, ...]
-        TWR1_Instr: selectedInstr.length > 0 ? ['L', ...selectedInstr] : null,
-      };
-
-      try {
-        updateStatus('Zapisywanie...', 'saving');
-
-        await grist.docApi.applyUserActions([
-          ['UpdateRecord', 'GRAFIK', currentEditRecord.id, updates]
-        ]);
-
-        updateStatus('Zapisano ✓', 'ok');
-        closeModal();
-
-        // Dane odświeżą się automatycznie przez onRecords
-        // Ale dla pewności możemy wymusić odświeżenie
-        setTimeout(() => {
-          updateStatus('Gotowy', 'ok');
-        }, 1500);
-
-      } catch (e) {
-        console.error('Błąd zapisu:', e);
-        updateStatus('Błąd: ' + e.message, 'error');
-        alert('Błąd zapisu:\n' + e.message);
-      }
-    }
-
-    // ============================================
-    // POMOCNICZE
-    // ============================================
-    async function refreshData() {
-      updateStatus('Odświeżanie...', 'saving');
-      await loadReferenceData();
-      // Dane z GRAFIK odświeżą się przez onRecords
-    }
-
-    function updateStatus(text, type = 'ok') {
-      const el = document.getElementById('status');
-      el.textContent = text;
-      el.className = 'status-indicator status-' + type;
-    }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
-    });
+    }).mount('#app');
   </script>
 </body>
 </html>
