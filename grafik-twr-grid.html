@@ -2,197 +2,165 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Grist Grafik TWR - Calendar View</title>
+  <title>Grist Grafik TWR - Card View</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   
   <style>
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    /* Ukrywamy scrollbar dla czystszego wyglądu */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(4px);
+    body { font-family: 'Segoe UI', sans-serif; }
+    
+    /* Styl karty wzorowany na szkicu */
+    .sketch-card {
+      background: #ffffff;
+      border: 1px solid #334155; /* Ciemne obramowanie jak na szkicu */
+      border-radius: 8px;
+      box-shadow: 2px 2px 0px rgba(0,0,0,0.1); /* Lekki cień 'hard' */
+      transition: transform 0.1s;
     }
     
-    /* Grid Lines Logic */
-    .time-row {
-      border-bottom: 1px solid #e2e8f0;
-      min-height: 80px; /* Wysokość bazowa jednego slotu 1h */
+    .sketch-card:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px rgba(0,0,0,0.15);
+      z-index: 10;
     }
-    
-    /* Animacje kart */
-    .session-card {
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .session-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      z-index: 20;
+
+    /* Kategoria badge - stylizowany box */
+    .category-badge {
+      border: 2px solid #334155;
+      border-radius: 6px;
+      font-weight: 700;
+      padding: 2px 8px;
+      background: #f1f5f9;
+      color: #1e293b;
+      box-shadow: 1px 1px 0px #334155;
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+<body class="bg-gray-100 text-slate-800 h-screen flex flex-col overflow-hidden">
 
   <div id="app" class="h-full flex flex-col">
     
-    <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0 z-30 shadow-sm">
+    <header class="bg-white border-b border-gray-300 px-4 py-2 flex items-center justify-between shrink-0 z-30 shadow-sm h-14">
       <div class="flex items-center gap-4">
-        <h1 class="font-bold text-slate-700 text-lg flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          Grafik TWR
-        </h1>
+        <h1 class="font-bold text-slate-700 text-lg">Grafik TWR</h1>
         
-        <div class="h-6 w-px bg-slate-200 mx-2"></div>
-
-        <div class="flex items-center gap-2">
-          <label class="text-xs font-semibold text-slate-500 uppercase">Tydzień</label>
-          <select v-model="selectedWeek" class="bg-slate-100 border-transparent focus:border-blue-500 focus:bg-white rounded text-sm px-3 py-1.5 font-medium transition-colors cursor-pointer outline-none">
+        <div class="flex gap-2">
+          <select v-model="selectedWeek" class="bg-gray-50 border border-gray-300 rounded px-2 py-1 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
             <option v-for="week in sortedWeeks" :key="week" :value="week">{{ week }}</option>
           </select>
-        </div>
-
-        <div class="flex items-center gap-2 ml-4">
-          <label class="text-xs font-semibold text-slate-500 uppercase">Dzień</label>
-          <div class="flex bg-slate-100 p-1 rounded-lg">
-            <button 
-              @click="selectedDay = null"
-              :class="['px-3 py-1 text-xs font-medium rounded-md transition-all', !selectedDay ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700']"
-            >Wszystkie</button>
-            <button 
-              v-for="day in availableDays" 
-              :key="day"
-              @click="selectedDay = day"
-              :class="['px-3 py-1 text-xs font-medium rounded-md transition-all', selectedDay === day ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:text-slate-700']"
-            >
-              {{ day }}
-            </button>
+          
+          <div class="flex bg-gray-100 p-0.5 rounded border border-gray-200">
+             <button @click="selectedDay = null" :class="['px-3 py-1 text-xs font-bold rounded', !selectedDay ? 'bg-white shadow text-blue-700' : 'text-gray-500']">All</button>
+             <button v-for="day in availableDays" :key="day" @click="selectedDay = day" 
+                     :class="['px-2 py-1 text-xs font-bold rounded', selectedDay === day ? 'bg-white shadow text-blue-700' : 'text-gray-500']">
+               {{ day }}
+             </button>
           </div>
         </div>
       </div>
-
-      <div class="flex gap-4 text-xs font-medium">
-        <span class="flex items-center gap-1.5">
-          <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Sesja OK
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span> Ostrzeżenie
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Naruszenie (8h)
-        </span>
+      
+      <div class="flex gap-3 text-xs font-bold text-gray-500">
+         <span class="flex items-center gap-1"><div class="w-3 h-3 bg-red-100 border border-red-500 rounded"></div> Naruszenie</span>
+         <span class="flex items-center gap-1"><div class="w-3 h-3 bg-orange-100 border border-orange-400 rounded"></div> Duplikat</span>
       </div>
     </header>
 
-    <div v-if="loading" class="flex-1 flex items-center justify-center text-slate-400 gap-3">
-      <svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      Ładowanie danych...
+    <div v-if="loading" class="flex-1 flex items-center justify-center text-slate-400">
+      Ładowanie...
     </div>
 
-    <main v-else class="flex-1 overflow-y-auto p-6 scroll-smooth">
+    <main v-else class="flex-1 overflow-y-auto p-4 scroll-smooth">
       
-      <div v-if="processedData.length === 0" class="text-center py-20">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4 text-slate-400">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-        </div>
-        <h3 class="text-lg font-medium text-slate-900">Brak danych dla wybranych filtrów</h3>
-        <p class="text-slate-500 mt-1">Spróbuj wybrać inny tydzień lub dodaj wpisy w tabeli GRAFIK.</p>
+      <div v-if="processedData.length === 0" class="text-center py-10 text-gray-400">
+        Brak danych do wyświetlenia.
       </div>
 
-      <div v-for="dayGroup in processedData" :key="dayGroup.dayName" class="mb-10 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div v-for="dayGroup in processedData" :key="dayGroup.dayName" class="mb-8">
         
-        <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-baseline gap-3 sticky top-0 z-20">
-          <h2 class="text-xl font-bold text-slate-800">{{ dayGroup.dayName }}</h2>
-          <span class="text-sm font-medium text-slate-500">Liczba sesji: {{ dayGroup.totalSessions }}</span>
+        <div class="flex items-baseline gap-2 mb-2 border-b border-gray-300 pb-1">
+          <h2 class="text-2xl font-black text-slate-700 uppercase tracking-tight">{{ dayGroup.dayName }}</h2>
+          <span class="text-sm font-medium text-slate-400">{{ dayGroup.totalSessions }} sesji</span>
         </div>
 
-        <div class="relative grid grid-cols-[80px_1fr]">
+        <div class="grid grid-cols-[60px_1fr] gap-0">
           
-          <div class="border-r border-slate-200 bg-slate-50/50">
-            <div 
-              v-for="slot in dayGroup.uniqueSlots" 
-              :key="slot" 
-              class="h-[90px] flex flex-col items-center justify-center border-b border-slate-100 text-xs font-semibold text-slate-500"
-            >
+          <div class="pt-8">
+            <div v-for="slot in dayGroup.uniqueSlots" :key="slot" class="h-[120px] border-t border-gray-200 text-xs text-gray-400 font-mono -mt-px pr-2 text-right">
               {{ slot }}
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 divide-x divide-slate-100">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2">
             
-            <div v-for="station in stations" :key="station.id" class="relative bg-white min-h-[100px]">
+            <div v-for="station in stations" :key="station.id" class="flex flex-col gap-2">
               
-              <div class="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-100 py-2 text-center shadow-sm">
-                <span 
-                  class="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider text-white"
-                  :style="{ backgroundColor: station.color }"
-                >
-                  {{ station.name }}
-                </span>
+              <div class="text-center text-xs font-bold uppercase tracking-wider py-1 rounded text-white shadow-sm"
+                   :style="{ backgroundColor: station.color }">
+                {{ station.name }}
               </div>
 
-              <div class="grid relative" :style="`grid-template-rows: repeat(${dayGroup.uniqueSlots.length}, 90px);`">
+              <div class="grid relative bg-gray-50/50 rounded-lg border border-dashed border-gray-200" 
+                   :style="`grid-template-rows: repeat(${dayGroup.uniqueSlots.length}, 120px);`">
                 
-                <div 
-                  v-for="i in dayGroup.uniqueSlots.length" 
-                  class="border-b border-slate-50 w-full col-start-1 row-start-auto pointer-events-none"
-                  :style="`grid-row: ${i}`"
-                ></div>
+                <div v-for="i in dayGroup.uniqueSlots.length" class="border-b border-gray-100 w-full col-start-1 row-start-auto pointer-events-none" :style="`grid-row: ${i}`"></div>
 
-                <div 
-                  v-for="event in getEventsForStation(dayGroup, station.id)" 
-                  :key="event.id"
-                  @click="focusRecord(event.record)"
-                  class="m-1 session-card rounded-lg border-l-4 p-2.5 cursor-pointer flex flex-col justify-between relative overflow-hidden"
-                  :class="getCardClasses(event.record)"
-                  :style="{ 
-                    gridRowStart: event.startIdx + 1, 
-                    gridRowEnd: `span ${event.span}`,
-                    borderColor: station.color,
-                    backgroundColor: getCardBackground(event.record)
-                  }"
+                <div v-for="event in getEventsForStation(dayGroup, station.id)" 
+                     :key="event.id"
+                     @click="focusRecord(event.record)"
+                     class="sketch-card absolute w-[96%] left-[2%] cursor-pointer flex flex-col p-3 overflow-hidden"
+                     :class="getStatusClass(event.record)"
+                     :style="{ 
+                       gridRowStart: event.startIdx + 1, 
+                       gridRowEnd: `span ${event.span}`,
+                       marginTop: '4px',
+                       marginBottom: '4px',
+                       height: 'calc(100% - 8px)'
+                     }"
                 >
-                  <div class="absolute top-2 right-2 flex gap-1">
-                    <span v-if="event.record.duplikaty" class="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold border border-orange-200">DUPL</span>
-                    <span v-if="event.record.narusza8h" class="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold border border-red-200">8H</span>
-                    <span v-if="event.record.c" class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold border border-blue-200">A+B</span>
-                  </div>
-
-                  <div>
-                    <div class="font-bold text-slate-800 text-sm leading-tight mb-1">
-                      {{ getTraineeName(event.record.traineeA) }}
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="text-sm font-bold font-mono text-slate-700">
+                      {{ event.startSlot }} <span class="text-slate-400 text-xs mx-0.5">➔</span> {{ event.endRecord.godzDo }}
                     </div>
                     
-                    <div class="flex flex-wrap gap-1 mb-2">
-                       <span class="text-[10px] px-1.5 rounded bg-white/60 border border-slate-200 text-slate-600 font-medium">
-                         Ćw. {{ event.record.exNrA }}
-                       </span>
-                       <span v-if="event.record.instruktorzy && event.record.instruktorzy.length" class="text-[10px] px-1.5 rounded bg-yellow-50 border border-yellow-200 text-yellow-700 font-medium">
-                         Instr: {{ event.record.instruktorzy.length }}
-                       </span>
-                    </div>
-                    
-                    <div v-if="event.record.c && event.record.traineeB" class="mt-2 pt-2 border-t border-slate-200/60">
-                      <div class="text-[10px] uppercase text-slate-400 font-semibold tracking-wide">Trainee B</div>
-                      <div class="font-semibold text-slate-700 text-xs">{{ getTraineeName(event.record.traineeB) }}</div>
-                      <div class="text-[10px] text-slate-500">Ćw. {{ event.record.exNrB }}</div>
+                    <div v-if="getCategory(event.record)" class="category-badge text-[10px] uppercase tracking-wide">
+                      {{ getCategory(event.record) }}
                     </div>
                   </div>
 
-                  <div v-if="event.span > 1" class="mt-auto pt-2 text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    {{ getMergedTimeRange(event) }}
+                  <div class="flex-1 flex flex-col justify-start">
+                    <div class="flex flex-wrap items-baseline gap-x-2 mb-0.5">
+                      <span class="text-base font-bold text-slate-900 leading-tight">
+                        {{ getTraineeName(event.record.traineeA) }}
+                      </span>
+                      <span v-if="event.record.traineeB" class="text-sm font-semibold text-slate-500">
+                        {{ getTraineeName(event.record.traineeB) }}
+                      </span>
+                    </div>
+                    
+                    <div class="text-xs font-medium text-slate-600">
+                       <span v-if="event.record.faza" class="text-blue-700 font-bold">{{ event.record.faza }}</span>
+                       <span v-if="event.record.exNrA" class="ml-1 text-slate-500">| Ćw. {{ event.record.exNrA }}</span>
+                       <span v-if="event.record.c" class="ml-1 px-1 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">WSPÓLNE</span>
+                    </div>
+                  </div>
+
+                  <div class="mt-2 flex justify-end">
+                    <div class="text-right">
+                       <div v-for="instr in getInstructors(event.record)" 
+                            class="text-xs font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded my-0.5 inline-block ml-1">
+                         {{ instr }}
+                       </div>
+                    </div>
+                  </div>
+
+                  <div v-if="event.record.narusza8h" class="absolute bottom-1 left-2 text-[10px] font-bold text-red-600 flex items-center gap-1">
+                    ⚠️ 8h
                   </div>
 
                 </div>
@@ -215,48 +183,43 @@
         const selectedWeek = ref('');
         const selectedDay = ref(null);
 
-        // Konfiguracja Stanowisk - tutaj możesz dodać więcej lub zmienić nazwy
-        // Obecnie schemat ma tylko TWR1, więc mapujemy wszystko do TWR1, 
-        // ale przygotowałem strukturę pod 6 stanowisk
+        // Stanowiska
         const stations = [
-          { id: 'TWR1', name: 'TWR 1', color: '#3b82f6' },
-          { id: 'TWR2', name: 'TWR 2', color: '#8b5cf6' },
-          { id: 'TWR3', name: 'TWR 3', color: '#06b6d4' },
-          { id: 'TWR4', name: 'TWR 4', color: '#10b981' },
-          { id: 'TWR5', name: 'TWR 5', color: '#f59e0b' },
-          { id: 'TWR6', name: 'TWR 6', color: '#ef4444' },
+          { id: 'TWR1', name: 'TWR 1', color: '#0f172a' }, // Zmieniłem na ciemny/neutralny kolor dla nagłówków
+          { id: 'TWR2', name: 'TWR 2', color: '#334155' },
+          { id: 'TWR3', name: 'TWR 3', color: '#475569' },
+          { id: 'TWR4', name: 'TWR 4', color: '#64748b' },
+          { id: 'TWR5', name: 'TWR 5', color: '#94a3b8' },
+          { id: 'TWR6', name: 'TWR 6', color: '#cbd5e1' },
         ];
 
-        // === DATA FETCHING ===
         onMounted(() => {
           grist.ready({
             requiredAccess: 'full',
             columns: [
-              // Mapowanie kolumn z Grist
               { name: 'Data_Tydzien', title: 'Tydzień' },
               { name: 'Data_DzienPL', title: 'Dzień PL' },
               { name: 'Slot_Godz_od', title: 'Godz. od' },
               { name: 'Slot_Godz_do', title: 'Godz. do' },
               { name: 'TWR1_TraineeA', title: 'Trainee A', type: 'Ref' },
               { name: 'TWR1_TraineeB', title: 'Trainee B', type: 'Ref' },
+              { name: 'TWR1_TraineeA_Faza', title: 'Faza', type: 'Ref' }, // Dodane
               { name: 'TWR1_Instr', title: 'Instruktorzy', type: 'RefList' },
+              { name: 'TWR_Kat', title: 'Kategoria', type: 'Ref' }, // Dodane
               { name: 'exNrA', title: 'Nr Ćw A' },
               { name: 'exNrB', title: 'Nr Ćw B' },
               { name: 'C', title: 'Wspólna (C)' },
               { name: 'TraineeDuplikaty', title: 'Duplikaty' },
               { name: 'TraineeA_Narusza8h', title: 'Narusza 8h A' },
               { name: 'TraineeB_Narusza8h', title: 'Narusza 8h B' },
-              // Jeśli masz kolumny dla TWR2, dodaj je tutaj
             ]
           });
 
           grist.onRecords((data) => {
             records.value = data.map(normalizeRecord);
             loading.value = false;
-            
-            // Auto-select current week if nothing selected
             if (!selectedWeek.value && sortedWeeks.value.length > 0) {
-              selectedWeek.value = sortedWeeks.value[sortedWeeks.value.length - 1]; // Ostatni tydzień domyślnie
+              selectedWeek.value = sortedWeeks.value[sortedWeeks.value.length - 1];
             }
           });
         });
@@ -268,11 +231,12 @@
             dzien: rec.Data_DzienPL,
             godzOd: rec.Slot_Godz_od,
             godzDo: rec.Slot_Godz_do,
-            // Zakładamy, że dane z tabeli to TWR1. Jeśli dodasz kolumnę 'Stanowisko', użyj jej tutaj.
             stationId: 'TWR1', 
-            traineeA: rec.TWR1_TraineeA, // ID or object depending on serialization
+            traineeA: rec.TWR1_TraineeA, 
             traineeB: rec.TWR1_TraineeB,
+            faza: rec.TWR1_TraineeA_Faza, // Pobieramy fazę
             instruktorzy: rec.TWR1_Instr || [],
+            kategoria: rec.TWR_Kat, // Pobieramy kategorię
             exNrA: rec.exNrA,
             exNrB: rec.exNrB,
             c: rec.C,
@@ -281,8 +245,6 @@
           };
         }
 
-        // === COMPUTED HELPERS ===
-        
         const sortedWeeks = computed(() => {
           const weeks = new Set(records.value.map(r => r.tydzien).filter(Boolean));
           return Array.from(weeks).sort();
@@ -290,28 +252,19 @@
 
         const availableDays = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
 
-        // Core Processing Logic
         const processedData = computed(() => {
           if (!selectedWeek.value) return [];
-
-          // 1. Filtrowanie
           let filtered = records.value.filter(r => r.tydzien === selectedWeek.value);
           if (selectedDay.value) {
             filtered = filtered.filter(r => r.dzien === selectedDay.value);
           }
 
-          // 2. Grupowanie po Dniach
-          // Sortujemy dni wg kolejności w tygodniu
           const dayGroups = [];
-          
           availableDays.forEach(dayName => {
             const dayRecords = filtered.filter(r => r.dzien === dayName);
             if (dayRecords.length === 0) return;
-
-            // Znajdź unikalne sloty czasowe dla tego dnia (posortowane)
             const uniqueSlots = [...new Set(dayRecords.map(r => r.godzOd))].sort();
 
-            // Cache'owanie przetworzonych eventów per stacja
             const stationEvents = {};
             stations.forEach(st => {
                stationEvents[st.id] = mergeEvents(dayRecords.filter(r => r.stationId === st.id), uniqueSlots);
@@ -324,16 +277,12 @@
               stationEvents
             });
           });
-
           return dayGroups;
         });
 
-        // === MERGING LOGIC (Magia "Rozciągania") ===
         function mergeEvents(stationRecords, timeSlots) {
           const events = [];
           if (!stationRecords.length) return events;
-
-          // Mapa rekordów po czasie startu dla szybkiego dostępu
           const recordsMap = new Map();
           stationRecords.forEach(r => recordsMap.set(r.godzOd, r));
 
@@ -346,16 +295,11 @@
               i++;
               continue;
             }
-
-            // Start nowego bloku
             let span = 1;
-            
-            // Sprawdź kolejne sloty
             let j = i + 1;
             while (j < timeSlots.length) {
               const nextSlot = timeSlots[j];
               const nextRec = recordsMap.get(nextSlot);
-              
               if (shouldMerge(currentRec, nextRec)) {
                 span++;
                 j++;
@@ -363,77 +307,61 @@
                 break;
               }
             }
-
-            // Dodaj event
             events.push({
-              id: currentRec.id, // ID pierwszego rekordu w grupie
+              id: currentRec.id,
               record: currentRec,
               startSlot: currentSlot,
-              startIdx: i, // Index wiersza w gridzie
+              startIdx: i,
               span: span,
               endRecord: j > i + 1 ? recordsMap.get(timeSlots[j-1]) : currentRec
             });
-
-            // Przeskocz przetworzone sloty
             i += span;
           }
           return events;
         }
 
-        // Warunek łączenia kart
         function shouldMerge(rec1, rec2) {
           if (!rec1 || !rec2) return false;
-          
-          // Logika: Muszą być ci sami Trainee, ta sama kategoria (C) i ci sami instruktorzy
-          // Można to poluzować w zależności od potrzeb
-          
+          // Łączymy jeśli: ci sami Trainees, Kategoria, Instruktorzy i Nr Ćwiczenia
           const sameTraineeA = rec1.traineeA === rec2.traineeA;
           const sameTraineeB = rec1.traineeB === rec2.traineeB;
-          const sameType = rec1.c === rec2.c;
+          const sameEx = rec1.exNrA === rec2.exNrA;
           
-          // Porównanie instruktorów (tablice)
           const instr1 = (rec1.instruktorzy || []).sort().join(',');
           const instr2 = (rec2.instruktorzy || []).sort().join(',');
           const sameInstr = instr1 === instr2;
 
-          // Ważne: Sprawdzamy też czy ćwiczenie jest to samo. 
-          // Jeśli zmieniło się ćwiczenie, chcemy nową kartę (chyba że wolisz inaczej)
-          const sameEx = rec1.exNrA === rec2.exNrA;
-
-          return sameTraineeA && sameTraineeB && sameType && sameInstr && sameEx;
+          return sameTraineeA && sameTraineeB && sameInstr && sameEx;
         }
 
-        // === HELPERS ===
+        // --- HELPERS DO WYŚWIETLANIA ---
 
         function getEventsForStation(dayGroup, stationId) {
           return dayGroup.stationEvents[stationId] || [];
         }
 
-        function getCardClasses(rec) {
-          // Błędy mają priorytet nad ostrzeżeniami
-          if (rec.narusza8h) return 'border-red-500';
-          if (rec.duplikaty) return 'border-orange-400';
-          return 'border-transparent'; // Kolor jest ustawiany dynamicznie w style inline
+        function getStatusClass(rec) {
+          // Zmienia tło i obramowanie w zależności od błędów
+          if (rec.narusza8h) return 'bg-red-50 border-red-500';
+          if (rec.duplikaty) return 'bg-orange-50 border-orange-400';
+          return 'bg-white border-slate-600'; // Domyślny styl "sketch"
         }
 
-        function getCardBackground(rec) {
-           if (rec.narusza8h) return '#fef2f2'; // red-50
-           if (rec.duplikaty) return '#fff7ed'; // orange-50
-           return '#ffffff'; // white
+        function getTraineeName(val) {
+          if (!val) return null;
+          return String(val); // Jeśli Grist zwraca obiekt, tu można wyciągnąć .Nazwisko
         }
 
-        function getTraineeName(traineeField) {
-          if (!traineeField) return '-';
-          // Grist często zwraca obiekt referencyjny. Jeśli to string, to OK.
-          // Zakładam, że w kolumnie jest ustawione "Show Column" na NazwiskoImie lub ID.
-          // Jeśli dostajemy surowe ID, przydałoby się zmapować, ale tutaj wyświetlamy to co przyjdzie.
-          return String(traineeField); 
+        function getCategory(rec) {
+          // Jeśli kategoria jest pusta lub "---", nie wyświetlaj
+          if (!rec.kategoria || rec.kategoria === '---') return null;
+          return String(rec.kategoria);
         }
 
-        function getMergedTimeRange(event) {
-          const start = event.record.godzOd;
-          const end = event.endRecord.godzDo;
-          return `${start} - ${end}`;
+        function getInstructors(rec) {
+          if (!rec.instruktorzy) return [];
+          // Zwraca tablicę stringów
+          return Array.isArray(rec.instruktorzy) ? rec.instruktorzy.map(String) : [String(rec.instruktorzy)];
         }
 
         function focusRecord(rec) {
@@ -441,20 +369,8 @@
         }
 
         return {
-          records,
-          loading,
-          selectedWeek,
-          selectedDay,
-          sortedWeeks,
-          availableDays,
-          stations,
-          processedData,
-          getEventsForStation,
-          getCardClasses,
-          getCardBackground,
-          getTraineeName,
-          getMergedTimeRange,
-          focusRecord
+          records, loading, selectedWeek, selectedDay, sortedWeeks, availableDays, stations,
+          processedData, getEventsForStation, getStatusClass, getTraineeName, getCategory, getInstructors, focusRecord
         };
       }
     }).mount('#app');
