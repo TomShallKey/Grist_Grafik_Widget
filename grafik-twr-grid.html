@@ -887,38 +887,20 @@
     // INICJALIZACJA GRIST
     // ============================================
     grist.ready({
-      requiredAccess: 'full',  // Wymagane do edycji!
-      columns: [
-        { name: 'Data', type: 'Ref:Kalendarz_DniPracy' },
-        { name: 'Slot', type: 'Ref:Sesje' },
-        { name: 'TWR1_TraineeA', type: 'Ref:Trainee_DB' },
-        { name: 'TWR1_TraineeB', type: 'Ref:Trainee_DB', optional: true },
-        { name: 'TWR1_Instr', type: 'RefList:R_Instr_Ewidencja', optional: true },
-        { name: 'TWR_Kat', type: 'Ref:Kategorie', optional: true },
-        { name: 'C', type: 'Bool', optional: true },
-        // Kolumny formuły (read-only)
-        { name: 'Slot_Godz_od', type: 'Text', optional: true },
-        { name: 'Slot_Godz_do', type: 'Text', optional: true },
-        { name: 'Data_DzienPL', type: 'Text', optional: true },
-        { name: 'Data_Tydzien', type: 'Text', optional: true },
-        { name: 'exNrA', type: 'Numeric', optional: true },
-        { name: 'exNrB', type: 'Numeric', optional: true },
-        { name: 'TWR1_Trainee1_Wymagane', type: 'Numeric', optional: true },
-        { name: 'TraineeDuplikaty', type: 'Bool', optional: true },
-        { name: 'TraineeA_Narusza8h', type: 'Bool', optional: true },
-        { name: 'TraineeB_Narusza8h', type: 'Bool', optional: true },
-        { name: 'TraineeA_Nazwa', type: 'Text', optional: true },
-        { name: 'TraineeB_Nazwa', type: 'Text', optional: true },
-        { name: 'TWR1_TraineeA_Faza', type: 'Text', optional: true },
-        { name: 'TWR1_TraineeB_Faza', type: 'Text', optional: true },
-        { name: 'Instr_lista', type: 'Text', optional: true },
-        { name: 'Kat_Nazwa', type: 'Text', optional: true },
-      ]
+      requiredAccess: 'full'  // Wymagane do edycji!
+      // BEZ columns: {} - widget dostaje WSZYSTKIE kolumny automatycznie
     });
 
-    grist.onRecords(async (records, mappings) => {
-      console.log('Otrzymano rekordy:', records.length);
-      allRecords = records.map(r => mapRecord(r, mappings));
+    // Nasłuchuj na zmiany rekordów
+    grist.onRecords(async (records) => {
+      console.log('=== onRecords ===');
+      console.log('Otrzymano rekordów:', records.length);
+      if (records.length > 0) {
+        console.log('Przykładowy rekord:', JSON.stringify(records[0], null, 2));
+        console.log('Dostępne kolumny:', Object.keys(records[0]));
+      }
+      
+      allRecords = records.map(r => mapRecord(r));
       processData();
       applyFilters();
     });
@@ -934,8 +916,16 @@
         updateStatus('Ładowanie...', 'saving');
 
         // Pobierz listę dostępnych tabel
-        const tables = await grist.docApi.listTables();
-        console.log('Dostępne tabele:', tables);
+        let tables = [];
+        try {
+          tables = await grist.docApi.listTables();
+          console.log('Dostępne tabele:', tables);
+        } catch (e) {
+          console.warn('Nie można pobrać listy tabel (wymaga full access):', e.message);
+          // Kontynuuj bez danych referencyjnych
+          updateStatus('Tryb read-only', 'ok');
+          return;
+        }
 
         // Trainee_DB
         if (tables.includes('Trainee_DB')) {
@@ -1038,39 +1028,41 @@
     // ============================================
     // MAPOWANIE REKORDÓW
     // ============================================
-    function mapRecord(rec, mappings) {
-      // Użyj mapColumnNames jeśli dostępne
-      const mapped = mappings ? grist.mapColumnNames(rec, mappings) : rec;
-      if (!mapped) return null;
+    function mapRecord(rec) {
+      if (!rec) return null;
+
+      // Debug - pokaż co mamy w rekordzie
+      // console.log('Mapowanie rekordu:', rec.id, 'Data:', rec.Data, 'Slot:', rec.Slot);
 
       return {
         id: rec.id,
-        // Referencje (mogą być liczbami lub obiektami)
-        data: getRefId(mapped.Data),
-        slot: getRefId(mapped.Slot),
-        traineeA: getRefId(mapped.TWR1_TraineeA),
-        traineeB: getRefId(mapped.TWR1_TraineeB),
-        instruktorzy: getRefListIds(mapped.TWR1_Instr),
-        kategoria: getRefId(mapped.TWR_Kat),
-        c: mapped.C || false,
+        
+        // Referencje - Grist przekazuje je jako liczby (ID) lub obiekty
+        data: getRefId(rec.Data),
+        slot: getRefId(rec.Slot),
+        traineeA: getRefId(rec.TWR1_TraineeA),
+        traineeB: getRefId(rec.TWR1_TraineeB),
+        instruktorzy: getRefListIds(rec.TWR1_Instr),
+        kategoria: getRefId(rec.TWR_Kat),
+        c: rec.C || false,
 
         // Wartości z formuł (tylko do odczytu)
-        godzOd: mapped.Slot_Godz_od || '',
-        godzDo: mapped.Slot_Godz_do || '',
-        dzienPL: mapped.Data_DzienPL || '',
-        tydzien: mapped.Data_Tydzien || '',
-        exNrA: mapped.exNrA,
-        exNrB: mapped.exNrB,
-        wymagane: mapped.TWR1_Trainee1_Wymagane || 0,
-        duplikaty: mapped.TraineeDuplikaty || false,
-        narusza8hA: mapped.TraineeA_Narusza8h || false,
-        narusza8hB: mapped.TraineeB_Narusza8h || false,
-        traineeA_nazwa: mapped.TraineeA_Nazwa || '',
-        traineeB_nazwa: mapped.TraineeB_Nazwa || '',
-        traineeA_faza: mapped.TWR1_TraineeA_Faza || '',
-        traineeB_faza: mapped.TWR1_TraineeB_Faza || '',
-        instr_lista: mapped.Instr_lista || '',
-        kat_nazwa: mapped.Kat_Nazwa || '',
+        godzOd: rec.Slot_Godz_od || '',
+        godzDo: rec.Slot_Godz_do || '',
+        dzienPL: rec.Data_DzienPL || '',
+        tydzien: rec.Data_Tydzien || '',
+        exNrA: rec.exNrA,
+        exNrB: rec.exNrB,
+        wymagane: rec.TWR1_Trainee1_Wymagane || 0,
+        duplikaty: rec.TraineeDuplikaty || false,
+        narusza8hA: rec.TraineeA_Narusza8h || false,
+        narusza8hB: rec.TraineeB_Narusza8h || false,
+        traineeA_nazwa: rec.TraineeA_Nazwa || '',
+        traineeB_nazwa: rec.TraineeB_Nazwa || '',
+        traineeA_faza: rec.TWR1_TraineeA_Faza || '',
+        traineeB_faza: rec.TWR1_TraineeB_Faza || '',
+        instr_lista: rec.Instr_lista || '',
+        kat_nazwa: rec.Kat_Nazwa || '',
       };
     }
 
@@ -1173,11 +1165,29 @@
     function render() {
       const grid = document.getElementById('schedule-grid');
 
+      // Debug info
+      console.log('=== RENDER ===');
+      console.log('filteredRecords:', filteredRecords.length);
+      if (filteredRecords.length > 0) {
+        const sample = filteredRecords[0];
+        console.log('Przykład po mapowaniu:', {
+          id: sample.id,
+          dzienPL: sample.dzienPL,
+          tydzien: sample.tydzien,
+          godzOd: sample.godzOd,
+          traineeA: sample.traineeA,
+          traineeA_nazwa: sample.traineeA_nazwa
+        });
+      }
+
       if (!filteredRecords.length) {
         grid.innerHTML = `
           <div class="empty-state" style="grid-column: 1 / -1;">
             <h3>Brak sesji do wyświetlenia</h3>
-            <p>Zmień filtry lub dodaj nowe sesje w tabeli GRAFIK</p>
+            <p>Zmień filtry lub sprawdź czy tabela GRAFIK ma dane.</p>
+            <p style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">
+              Sprawdź konsolę (F12) aby zobaczyć diagnostykę.
+            </p>
           </div>
         `;
         return;
