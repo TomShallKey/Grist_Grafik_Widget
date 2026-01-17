@@ -3,439 +3,1151 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grist Grafik - Fixed Names</title>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <title>Grafik TWR - Grid</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  
   <style>
     :root {
-      --bg-color: #f3f4f6;
-      --card-bg: #ffffff;
-      --border-color: #e5e7eb;
-      --text-main: #111827;
-      --text-muted: #6b7280;
-      --primary: #2563eb;
-      --highlight-bg: #eff6ff;
+      --bg-primary: #f1f5f9;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      
+      /* Kolory stanowisk */
+      --twr1-color: #3b82f6;
+      --twr2-color: #8b5cf6;
+      --twr3-color: #06b6d4;
+      --twr4-color: #10b981;
+      --twr5-color: #f59e0b;
+      --twr6-color: #ef4444;
+      
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --accent-orange: #f97316;
+      
+      --header-height: 50px;
+      --row-label-width: 80px;
+      --cell-min-height: 90px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      margin: 0;
-      padding: 16px;
-      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.4;
+      min-height: 100vh;
+    }
+
+    /* Header Controls */
+    .controls {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    select, input[type="date"] {
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--twr1-color);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .stats {
+      margin-left: auto;
+      display: flex;
+      gap: 16px;
       font-size: 12px;
     }
 
-    /* Układ ogólny */
-    .schedule-container {
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .stat-dot.total { background: var(--twr1-color); }
+    .stat-dot.warning { background: var(--accent-orange); }
+    .stat-dot.error { background: var(--accent-red); }
+
+    /* Grid Container */
+    .grid-wrapper {
+      padding: 16px;
+      overflow-x: auto;
+    }
+
+    .schedule-grid {
+      display: grid;
+      grid-template-columns: var(--row-label-width) repeat(6, minmax(180px, 1fr));
+      gap: 1px;
+      background: var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Header Row */
+    .grid-header {
+      display: contents;
+    }
+
+    .header-cell {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      color: white;
+      padding: 14px 12px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .header-cell.corner {
+      background: #0f172a;
+    }
+
+    .header-cell .station-name {
+      font-size: 14px;
+    }
+
+    .header-cell .station-sub {
+      font-size: 10px;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    /* Day Row Header */
+    .day-header {
+      grid-column: 1 / -1;
+      background: linear-gradient(90deg, #f8fafc, #f1f5f9);
+      padding: 10px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-top: 2px solid var(--border-color);
+    }
+
+    .day-header:first-of-type {
+      border-top: none;
+    }
+
+    .day-name {
+      color: var(--text-primary);
+    }
+
+    .day-date {
+      color: var(--text-secondary);
+      font-weight: 400;
+      font-size: 12px;
+    }
+
+    .day-stats {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Time Slot Label */
+    .slot-label {
+      background: #f8fafc;
+      padding: 8px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      padding-bottom: 60px;
+      align-items: center;
+      justify-content: center;
+      border-right: 2px solid var(--border-color);
     }
 
-    /* Nagłówki */
-    .header-row {
-      display: grid;
-      grid-template-columns: 60px repeat(6, 1fr);
-      gap: 8px;
-      position: sticky;
-      top: 0;
-      background: var(--bg-color);
-      z-index: 10;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #d1d5db;
+    .slot-time {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-primary);
     }
-    .header-col {
-      text-align: center;
-      font-weight: 700;
+
+    .slot-time-end {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* Grid Cell */
+    .grid-cell {
+      background: var(--bg-card);
+      min-height: var(--cell-min-height);
+      padding: 6px;
+      position: relative;
+    }
+
+    .grid-cell:hover {
+      background: #f8fafc;
+    }
+
+    .grid-cell.empty {
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        #f8fafc 10px,
+        #f8fafc 20px
+      );
+    }
+
+    /* Session Card */
+    .session-card {
+      background: var(--bg-card);
+      border-radius: 8px;
+      padding: 10px;
+      height: 100%;
+      min-height: 78px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      border-left: 4px solid var(--card-color, var(--twr1-color));
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .session-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10;
+    }
+
+    .session-card.selected {
+      ring: 2px solid var(--twr1-color);
+      box-shadow: 0 0 0 2px var(--twr1-color);
+    }
+
+    /* Card color variants based on station */
+    .session-card[data-station="1"] { --card-color: var(--twr1-color); }
+    .session-card[data-station="2"] { --card-color: var(--twr2-color); }
+    .session-card[data-station="3"] { --card-color: var(--twr3-color); }
+    .session-card[data-station="4"] { --card-color: var(--twr4-color); }
+    .session-card[data-station="5"] { --card-color: var(--twr5-color); }
+    .session-card[data-station="6"] { --card-color: var(--twr6-color); }
+
+    /* Warning/Error states */
+    .session-card.has-warning {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    }
+
+    .session-card.has-error {
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border-left-color: var(--accent-red);
+    }
+
+    .session-card.has-duplicate {
+      background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+      border-left-color: var(--twr2-color);
+    }
+
+    /* Card Content */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+
+    .trainee-info {
+      flex: 1;
+    }
+
+    .trainee-name {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .trainee-phase {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-top: 1px;
+    }
+
+    .card-badges {
+      display: flex;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+    }
+
+    .badge.warning {
+      background: var(--accent-orange);
+      color: white;
+    }
+
+    .badge.error {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    .badge.duplicate {
+      background: var(--twr2-color);
+      color: white;
+    }
+
+    .badge.has-b {
+      background: var(--twr3-color);
+      color: white;
+    }
+
+    /* Card Details */
+    .card-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .detail-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #f1f5f9;
+      color: var(--text-secondary);
+    }
+
+    .detail-tag.exercise {
+      background: #dbeafe;
+      color: #1e40af;
+      font-weight: 500;
+    }
+
+    .detail-tag.progress {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .detail-tag.instructor {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    /* Trainee B section in card */
+    .trainee-b-section {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--border-color);
+    }
+
+    .trainee-b-label {
+      font-size: 9px;
       color: var(--text-muted);
       text-transform: uppercase;
-      font-size: 11px;
+      letter-spacing: 0.5px;
     }
 
-    /* Wiersze */
-    .day-header {
-      font-size: 13px;
-      font-weight: 700;
-      margin: 16px 0 8px 0;
-      color: var(--text-main);
-      border-left: 3px solid var(--primary);
-      padding-left: 8px;
+    /* Progress Bar */
+    .progress-bar {
+      height: 3px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
     }
 
-    .slot-row {
-      display: grid;
-      grid-template-columns: 60px repeat(6, 1fr);
-      gap: 8px;
-      min-height: 110px;
+    .progress-fill {
+      height: 100%;
+      background: var(--card-color, var(--accent-green));
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    /* Detail Panel (Slide-out) */
+    .detail-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.3);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+
+    .detail-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .detail-panel {
+      position: fixed;
+      top: 0;
+      right: -420px;
+      width: 420px;
+      height: 100vh;
+      background: var(--bg-card);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+      transition: right 0.3s ease;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-panel.open {
+      right: 0;
+    }
+
+    .panel-header {
+      padding: 20px;
+      background: linear-gradient(135deg, var(--panel-color, var(--twr1-color)), color-mix(in srgb, var(--panel-color, var(--twr1-color)) 70%, white));
+      color: white;
+      position: relative;
+    }
+
+    .panel-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .panel-close:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 600;
       margin-bottom: 4px;
     }
 
-    .time-cell {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      font-weight: 600;
-      color: var(--text-muted);
-      font-size: 10px;
+    .panel-subtitle {
+      font-size: 13px;
+      opacity: 0.9;
     }
 
-    /* KARTA SESJI */
-    .session-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 6px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 6px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-      position: relative;
-      height: 100%;
-      box-sizing: border-box;
-    }
-    
-    .session-card:hover {
-      border-color: var(--primary);
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
     }
 
-    /* GRID TRAINEE */
-    .trainee-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 4px;
-      flex-grow: 1;
-    }
-    
-    .trainee-grid.dual-mode {
-      grid-template-columns: 1fr 1fr; 
+    .panel-section {
+      margin-bottom: 20px;
     }
 
-    .trainee-cell {
-      display: flex;
-      flex-direction: column;
-      background: #f9fafb;
-      border-radius: 4px;
-      padding: 4px;
-      border: 1px solid transparent;
-    }
-    .trainee-cell:hover { border-color: #e5e7eb; background: #fff; }
-
-    /* Wybór Trainee */
-    .t-select {
-      width: 100%;
-      border: none;
-      background: transparent;
-      font-weight: 700;
+    .panel-section-title {
       font-size: 11px;
-      color: var(--text-main);
-      padding: 0;
-      margin-bottom: 2px;
-      cursor: pointer;
-    }
-    .t-select:focus { outline: none; text-decoration: underline; }
-
-    /* Dane Faza / Ex */
-    .t-info {
-      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       color: var(--text-muted);
-      line-height: 1.3;
-      font-weight: 500;
-    }
-    .info-line { display: block; }
-    .accent { color: var(--primary); font-weight: 700; }
-
-    /* GRID INSTRUKTORZY */
-    .instr-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 2px;
-      border-top: 1px solid #f3f4f6;
-      padding-top: 4px;
+      margin-bottom: 10px;
+      font-weight: 600;
     }
 
-    .i-select {
-      width: 100%;
-      font-size: 9px;
-      text-align: center;
-      border: 1px solid #f3f4f6;
-      border-radius: 3px;
-      background: #fff;
-      padding: 2px 0;
-      color: var(--text-main);
-    }
-
-    /* Stopka */
-    .meta-footer {
+    .panel-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-top: 2px;
-    }
-    
-    .cat-select {
-      font-size: 9px;
-      border: none;
-      background: #f3f4f6;
-      border-radius: 3px;
-      padding: 1px 4px;
-      max-width: 60px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
     }
 
-    .dual-check {
-      font-size: 9px;
-      color: #9ca3af;
+    .panel-row:last-child {
+      border-bottom: none;
+    }
+
+    .panel-label {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .panel-value {
+      font-weight: 500;
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .panel-value.warning {
+      color: var(--accent-orange);
+    }
+
+    .panel-value.error {
+      color: var(--accent-red);
+    }
+
+    .panel-value.success {
+      color: var(--accent-green);
+    }
+
+    .panel-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color);
       display: flex;
-      align-items: center;
-      gap: 3px;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
+      transition: all 0.2s;
+      border: none;
     }
-    .dual-check input { margin: 0; }
 
-    /* Puste */
-    .empty-slot {
-      border: 1px dashed #e5e7eb;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #e5e7eb;
-      font-size: 18px;
-      cursor: default;
+    .btn-primary {
+      background: var(--twr1-color);
+      color: white;
     }
-    .empty-slot:hover { background: #fafafa; }
 
-    .saving {
-      position: absolute; top: 2px; right: 2px;
-      width: 6px; height: 6px; background: red; border-radius: 50%;
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    /* Empty State */
+    .empty-state {
+      grid-column: 1 / -1;
+      padding: 60px 20px;
+      text-align: center;
+      background: var(--bg-card);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .empty-state h3 {
+      font-size: 16px;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Loading State */
+    .loading {
+      grid-column: 1 / -1;
+      padding: 60px;
+      text-align: center;
+      background: var(--bg-card);
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: var(--twr1-color);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .schedule-grid {
+        grid-template-columns: var(--row-label-width) repeat(6, minmax(140px, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .detail-panel {
+        width: 100%;
+        right: -100%;
+      }
+      
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .stats {
+        margin-left: 0;
+        justify-content: center;
+      }
     }
   </style>
 </head>
 <body>
-
-<div id="app">
-  <div v-if="loading" style="text-align:center; padding:40px;">Ładowanie i przetwarzanie nazwisk...</div>
-  
-  <div v-else class="schedule-container">
-    
-    <div class="header-row">
-      <div class="header-col">Slot</div>
-      <div class="header-col" v-for="col in stanowiskaCols" :key="col">{{ col }}</div>
+  <div class="controls">
+    <div class="control-group">
+      <span class="control-label">Tydzień:</span>
+      <select id="week-filter" onchange="applyFilters()">
+        <option value="">Wszystkie</option>
+      </select>
     </div>
-
-    <div v-for="d in processedData" :key="d.dateStr">
-      <div class="day-header">{{ d.dayName }} {{ formatDate(d.dateStr) }}</div>
-
-      <div v-for="slot in d.slots" :key="slot.timeId" class="slot-row">
-        <div class="time-cell">
-          <span>{{ slot.labelStart }}</span>
-          <span style="opacity:0.5">-</span>
-          <span>{{ slot.labelEnd }}</span>
-        </div>
-
-        <div v-for="stan in stanowiskaCols" :key="stan">
-          
-          <div v-if="slot.positions[stan]" class="session-card">
-            <div v-if="slot.positions[stan]._saving" class="saving"></div>
-
-            <div class="trainee-grid" :class="{ 'dual-mode': slot.positions[stan].C }">
-              
-              <div class="trainee-cell">
-                <select class="t-select" v-model="slot.positions[stan].TraineeA" 
-                        @change="update(slot.positions[stan], 'TraineeA')">
-                  <option :value="0">-</option>
-                  <option v-for="t in options.trainees" :value="t.id">{{ t.name }}</option>
-                </select>
-                <div class="t-info" v-if="slot.positions[stan].TraineeA">
-                   <span class="info-line accent">{{ getTraineePhase(slot.positions[stan].TraineeA) }}</span>
-                   <span class="info-line">Ex {{ slot.positions[stan].exNrA || '-' }}</span>
-                </div>
-              </div>
-
-              <div class="trainee-cell" v-if="slot.positions[stan].C">
-                <select class="t-select" v-model="slot.positions[stan].TraineeB"
-                        @change="update(slot.positions[stan], 'TraineeB')">
-                  <option :value="0">-</option>
-                  <option v-for="t in options.trainees" :value="t.id">{{ t.name }}</option>
-                </select>
-                <div class="t-info" v-if="slot.positions[stan].TraineeB">
-                   <span class="info-line accent">{{ getTraineePhase(slot.positions[stan].TraineeB) }}</span>
-                   <span class="info-line">Ex {{ slot.positions[stan].exNrB || '-' }}</span>
-                </div>
-              </div>
-
-            </div>
-
-            <div class="meta-footer">
-               <label class="dual-check" title="Dodaj Trainee B">
-                 <input type="checkbox" v-model="slot.positions[stan].C" @change="update(slot.positions[stan], 'C')">
-                 +B
-               </label>
-               <select class="cat-select" v-model="slot.positions[stan].Rodzaj" @change="update(slot.positions[stan], 'Rodzaj')">
-                  <option :value="0">Typ</option>
-                  <option v-for="c in options.cats" :value="c.id">{{ c.name }}</option>
-               </select>
-            </div>
-
-            <div class="instr-grid">
-               <select class="i-select" v-model="slot.positions[stan].Instr1" @change="update(slot.positions[stan], 'Instr1')">
-                 <option :value="0">-</option>
-                 <option v-for="i in options.instr" :value="i.id">{{ i.initials }}</option>
-               </select>
-               <select class="i-select" v-model="slot.positions[stan].Instr2" @change="update(slot.positions[stan], 'Instr2')">
-                 <option :value="0">-</option>
-                 <option v-for="i in options.instr" :value="i.id">{{ i.initials }}</option>
-               </select>
-               <select class="i-select" v-model="slot.positions[stan].Instr3" @change="update(slot.positions[stan], 'Instr3')">
-                 <option :value="0">-</option>
-                 <option v-for="i in options.instr" :value="i.id">{{ i.initials }}</option>
-               </select>
-            </div>
-
-          </div>
-          <div v-else class="empty-slot">+</div>
-        </div>
+    
+    <div class="control-group">
+      <span class="control-label">Dzień:</span>
+      <select id="day-filter" onchange="applyFilters()">
+        <option value="">Wszystkie</option>
+      </select>
+    </div>
+    
+    <div class="control-group">
+      <span class="control-label">Trainee:</span>
+      <select id="trainee-filter" onchange="applyFilters()">
+        <option value="">Wszyscy</option>
+      </select>
+    </div>
+    
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-dot total"></span>
+        <span id="stat-total">0</span> sesji
+      </div>
+      <div class="stat">
+        <span class="stat-dot warning"></span>
+        <span id="stat-warnings">0</span> ostrzeżeń
+      </div>
+      <div class="stat">
+        <span class="stat-dot error"></span>
+        <span id="stat-errors">0</span> naruszeń
       </div>
     </div>
   </div>
-</div>
 
-<script>
-  const { createApp, ref, computed, onMounted } = Vue;
+  <div class="grid-wrapper">
+    <div class="schedule-grid" id="schedule-grid">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p style="margin-top: 12px; color: var(--text-secondary);">Ładowanie danych...</p>
+      </div>
+    </div>
+  </div>
 
-  createApp({
-    setup() {
-      const loading = ref(true);
-      const records = ref([]);
-      const options = ref({ trainees: [], instr: [], cats: [], slots: {}, dates: {}, stan: {} });
-      const stanowiskaCols = ref(["TWR1", "TWR2", "TWR3", "APP1", "APP2", "ACC"]);
+  <div class="detail-overlay" id="detail-overlay" onclick="closePanel()"></div>
+  
+  <div class="detail-panel" id="detail-panel">
+    <button class="panel-close" onclick="closePanel()">×</button>
+    <div class="panel-header" id="panel-header">
+      <div class="panel-title" id="panel-title">Szczegóły sesji</div>
+      <div class="panel-subtitle" id="panel-subtitle"></div>
+    </div>
+    <div class="panel-content" id="panel-content"></div>
+    <div class="panel-footer">
+      <button class="btn btn-secondary" onclick="closePanel()">Zamknij</button>
+      <button class="btn btn-primary" onclick="goToRecord()">Edytuj w tabeli</button>
+    </div>
+  </div>
 
-      // FUNKCJA POBIERAJĄCA DANE
-      const fetchData = async () => {
-        try {
-          // 1. Pobieramy KURSANTÓW (Nazwiska są w tabeli 'Kursy')
-          // Najpierw pobierzmy tabelę bazową z nazwiskami
-          const kursyTable = await grist.docApi.fetchTable('Kursy');
-          const kursyMap = {}; // ID_Kursu -> "Kowalski Jan"
-          kursyTable.forEach(k => {
-             const naz = k.Nazwisko || '';
-             const im = k.Imie || '';
-             kursyMap[k.id] = (naz + ' ' + im).trim();
-          });
+  <script>
+    // ============== CONFIG ==============
+    const STATIONS = [
+      { id: 1, name: 'TWR 1', color: '#3b82f6' },
+      { id: 2, name: 'TWR 2', color: '#8b5cf6' },
+      { id: 3, name: 'TWR 3', color: '#06b6d4' },
+      { id: 4, name: 'TWR 4', color: '#10b981' },
+      { id: 5, name: 'TWR 5', color: '#f59e0b' },
+      { id: 6, name: 'TWR 6', color: '#ef4444' }
+    ];
 
-          // 2. Pobieramy FAZY
-          const fazyTable = await grist.docApi.fetchTable('Fazy');
-          const fazyMap = {}; 
-          fazyTable.forEach(f => fazyMap[f.id] = f.Faza);
+    // ============== STATE ==============
+    let allRecords = [];
+    let filteredRecords = [];
+    let selectedRecord = null;
+    let slots = [];
+    let weeks = new Set();
+    let days = new Set();
+    let trainees = new Map();
 
-          // 3. Pobieramy TRAINEE_DB (To jest tabela, której używa GRAFIK)
-          // Ta tabela łączy się z Kursy przez ID_Trainee
-          const traineeDbTable = await grist.docApi.fetchTable('Trainee_DB');
-          
-          options.value.trainees = traineeDbTable.map(row => {
-            // row.ID_Trainee to numer rekordu w tabeli Kursy
-            // row.Faza to numer rekordu w tabeli Fazy
-            const realName = kursyMap[row.ID_Trainee]; 
-            const realFaza = fazyMap[row.Faza];
+    // ============== GRIST INIT ==============
+    grist.ready({
+      requiredAccess: 'full',
+      columns: [
+        { name: 'Data', title: 'Data' },
+        { name: 'Data_DzienPL', title: 'Dzień PL' },
+        { name: 'Data_Tydzien', title: 'Tydzień' },
+        { name: 'Slot', title: 'Slot' },
+        { name: 'Slot_Godz_od', title: 'Godz. od' },
+        { name: 'Slot_Godz_do', title: 'Godz. do' },
+        { name: 'TWR1_TraineeA', title: 'Trainee A' },
+        { name: 'TWR1_TraineeB', title: 'Trainee B' },
+        { name: 'TWR1_Instr', title: 'Instruktorzy' },
+        { name: 'TWR_Kat', title: 'Kategoria' },
+        { name: 'C', title: 'C (wspólna)' },
+        { name: 'exNrA', title: 'Nr ćw. A' },
+        { name: 'exNrB', title: 'Nr ćw. B' },
+        { name: 'TWR1_Trainee1_Wymagane', title: 'Wymagane' },
+        { name: 'TraineeDuplikaty', title: 'Duplikaty' },
+        { name: 'TraineeA_Narusza8h', title: 'Narusza 8h A' },
+        { name: 'TraineeB_Narusza8h', title: 'Narusza 8h B' }
+      ]
+    });
 
-            return {
-              id: row.id, 
-              name: realName ? realName : `Brak danych (${row.id})`, // Fallback
-              faza: realFaza || '-'
-            };
-          }).sort((a,b) => a.name.localeCompare(b.name));
+    grist.onRecords(function(records, mappings) {
+      console.log('Received records:', records.length);
+      allRecords = records.map(normalizeRecord);
+      processData();
+      applyFilters();
+      render();
+    });
 
-          // 4. Instruktorzy
-          const iTable = await grist.docApi.fetchTable('R_Instr_Ewidencja');
-          options.value.instr = iTable.map(r => ({
-            id: r.id, 
-            initials: (r.Imie?.[0]||'') + (r.Nazwisko?.substring(0,3)||'')
-          })).sort((a,b) => a.initials.localeCompare(b.initials));
-
-          // 5. Kategorie
-          const cTable = await grist.docApi.fetchTable('Kategorie');
-          options.value.cats = cTable.map(r => ({ id: r.id, name: r.KategoriaSesji }));
-
-          // 6. Słowniki (Sloty, Stanowiska, Kalendarz)
-          const sTable = await grist.docApi.fetchTable('Sesje');
-          sTable.forEach(s => options.value.slots[s.id] = { start: s.Godz_od, end: s.Godz_do });
-          
-          const stTable = await grist.docApi.fetchTable('Stanowiska');
-          stTable.forEach(s => options.value.stan[s.id] = s.Stanowisko);
-
-          const dTable = await grist.docApi.fetchTable('Kalendarz_DniPracy');
-          dTable.forEach(d => options.value.dates[d.id] = d.Data);
-
-        } catch(e) { 
-          console.error("Błąd pobierania danych:", e);
-        }
+    // ============== DATA PROCESSING ==============
+    function normalizeRecord(rec) {
+      return {
+        id: rec.id,
+        data: rec.Data,
+        dzienPL: rec.Data_DzienPL || '',
+        tydzien: rec.Data_Tydzien || '',
+        slot: rec.Slot,
+        godzOd: rec.Slot_Godz_od || '',
+        godzDo: rec.Slot_Godz_do || '',
+        traineeA: rec.TWR1_TraineeA,
+        traineeB: rec.TWR1_TraineeB,
+        instruktorzy: rec.TWR1_Instr || [],
+        kategoria: rec.TWR_Kat,
+        c: rec.C || false,
+        exNrA: rec.exNrA,
+        exNrB: rec.exNrB,
+        wymagane: rec.TWR1_Trainee1_Wymagane || 0,
+        duplikaty: rec.TraineeDuplikaty || false,
+        narusza8hA: rec.TraineeA_Narusza8h || false,
+        narusza8hB: rec.TraineeB_Narusza8h || false,
+        // Placeholder - w przyszłości można dodać pole stanowisko
+        station: 1
       };
-
-      const processedData = computed(() => {
-        if (!records.value.length) return [];
-        const grp = {};
-        records.value.forEach(r => {
-          const dRaw = options.value.dates[r.Data];
-          if(!dRaw) return;
-          const dKey = new Date(dRaw*1000).toISOString().split('T')[0];
-          
-          if(!grp[dKey]) {
-            grp[dKey] = {
-              dateStr: dKey,
-              dayName: new Date(dRaw*1000).toLocaleDateString('pl-PL',{weekday:'short'}),
-              slotsMap: {}
-            };
-          }
-          const sId = r.Slot;
-          if(!grp[dKey].slotsMap[sId]) {
-            grp[dKey].slotsMap[sId] = {
-              timeId: sId,
-              labelStart: options.value.slots[sId]?.start || '?',
-              labelEnd: options.value.slots[sId]?.end || '?',
-              positions: {}
-            };
-          }
-          const stName = options.value.stan[r.Stanowisko];
-          if(stName) grp[dKey].slotsMap[sId].positions[stName] = { ...r, _saving: false };
-        });
-        
-        const res = Object.values(grp).sort((a,b) => a.dateStr.localeCompare(b.dateStr));
-        res.forEach(d => {
-          d.slots = Object.values(d.slotsMap).sort((a,b) => a.labelStart.localeCompare(b.labelStart));
-        });
-        return res;
-      });
-
-      const getTraineePhase = (tid) => options.value.trainees.find(x => x.id === tid)?.faza || '-';
-      
-      const update = async (rec, field) => {
-        rec._saving = true;
-        let val = rec[field];
-        if(val == 0 || val == "0") val = null;
-        if(field === 'C') val = !!val;
-        try {
-          await grist.docApi.applyUserActions([ ['UpdateRecord', 'GRAFIK', rec.id, { [field]: val }] ]);
-        } catch(e) { alert('Błąd zapisu'); } 
-        finally { rec._saving = false; }
-      };
-
-      const formatDate = (s) => new Date(s).toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
-
-      onMounted(async () => {
-        grist.ready({ requiredAccess: 'full' });
-        await fetchData();
-        grist.onRecords(r => { records.value = r; loading.value = false; });
-      });
-
-      return { loading, processedData, stanowiskaCols, options, update, getTraineePhase, formatDate };
     }
-  }).mount('#app');
-</script>
+
+    function processData() {
+      weeks.clear();
+      days.clear();
+      trainees.clear();
+      const slotSet = new Set();
+
+      allRecords.forEach(r => {
+        if (r.tydzien) weeks.add(r.tydzien);
+        if (r.dzienPL) days.add(r.dzienPL);
+        if (r.godzOd) slotSet.add(r.godzOd);
+        if (r.traineeA) {
+          trainees.set(r.traineeA, `Trainee #${r.traineeA}`);
+        }
+        if (r.traineeB) {
+          trainees.set(r.traineeB, `Trainee #${r.traineeB}`);
+        }
+      });
+
+      // Sort slots by time
+      slots = Array.from(slotSet).sort();
+
+      updateFilterOptions();
+    }
+
+    function updateFilterOptions() {
+      // Weeks
+      const weekSelect = document.getElementById('week-filter');
+      const currentWeek = weekSelect.value;
+      weekSelect.innerHTML = '<option value="">Wszystkie</option>';
+      Array.from(weeks).sort().forEach(w => {
+        weekSelect.innerHTML += `<option value="${w}" ${w === currentWeek ? 'selected' : ''}>Tydz. ${w}</option>`;
+      });
+
+      // Days
+      const daySelect = document.getElementById('day-filter');
+      const currentDay = daySelect.value;
+      daySelect.innerHTML = '<option value="">Wszystkie</option>';
+      const dayOrder = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+      Array.from(days).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b)).forEach(d => {
+        daySelect.innerHTML += `<option value="${d}" ${d === currentDay ? 'selected' : ''}>${d}</option>`;
+      });
+
+      // Trainees
+      const traineeSelect = document.getElementById('trainee-filter');
+      const currentTrainee = traineeSelect.value;
+      traineeSelect.innerHTML = '<option value="">Wszyscy</option>';
+      Array.from(trainees.entries())
+        .sort((a, b) => a[0] - b[0])
+        .forEach(([id, name]) => {
+          traineeSelect.innerHTML += `<option value="${id}" ${String(id) === currentTrainee ? 'selected' : ''}>${name}</option>`;
+        });
+    }
+
+    function applyFilters() {
+      const weekFilter = document.getElementById('week-filter').value;
+      const dayFilter = document.getElementById('day-filter').value;
+      const traineeFilter = document.getElementById('trainee-filter').value;
+
+      filteredRecords = allRecords.filter(r => {
+        if (weekFilter && r.tydzien !== weekFilter) return false;
+        if (dayFilter && r.dzienPL !== dayFilter) return false;
+        if (traineeFilter) {
+          const tid = parseInt(traineeFilter);
+          if (r.traineeA !== tid && r.traineeB !== tid) return false;
+        }
+        return true;
+      });
+
+      updateStats();
+      render();
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total').textContent = filteredRecords.length;
+      document.getElementById('stat-warnings').textContent = 
+        filteredRecords.filter(r => r.duplikaty).length;
+      document.getElementById('stat-errors').textContent = 
+        filteredRecords.filter(r => r.narusza8hA || r.narusza8hB).length;
+    }
+
+    // ============== RENDERING ==============
+    function render() {
+      const grid = document.getElementById('schedule-grid');
+
+      if (filteredRecords.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3>Brak sesji do wyświetlenia</h3>
+            <p>Zmień filtry lub dodaj nowe sesje w tabeli GRAFIK</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group by day + slot
+      const grouped = groupByDayAndSlot(filteredRecords);
+
+      let html = renderHeader();
+
+      // Get unique days in order
+      const dayOrder = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+      const uniqueDays = [...new Set(filteredRecords.map(r => r.dzienPL))]
+        .filter(Boolean)
+        .sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+
+      uniqueDays.forEach(day => {
+        const dayRecords = filteredRecords.filter(r => r.dzienPL === day);
+        const dayWeek = dayRecords[0]?.tydzien || '';
+        
+        // Day header
+        html += `
+          <div class="day-header">
+            <span class="day-name">${day}</span>
+            <span class="day-date">Tydzień ${dayWeek}</span>
+            <span class="day-stats">${dayRecords.length} sesji</span>
+          </div>
+        `;
+
+        // Get unique slots for this day
+        const daySlots = [...new Set(dayRecords.map(r => r.godzOd))].filter(Boolean).sort();
+
+        daySlots.forEach(slot => {
+          const slotRecord = dayRecords.find(r => r.godzOd === slot);
+          const godzDo = slotRecord?.godzDo || '';
+
+          // Slot label
+          html += `
+            <div class="slot-label">
+              <span class="slot-time">${slot}</span>
+              <span class="slot-time-end">${godzDo}</span>
+            </div>
+          `;
+
+          // Cells for each station
+          STATIONS.forEach((station, idx) => {
+            const cellRecords = dayRecords.filter(r => 
+              r.godzOd === slot && getStationForRecord(r) === station.id
+            );
+
+            if (cellRecords.length > 0) {
+              html += renderCell(cellRecords[0], station);
+            } else {
+              html += `<div class="grid-cell empty"></div>`;
+            }
+          });
+        });
+      });
+
+      grid.innerHTML = html;
+    }
+
+    function renderHeader() {
+      let html = `
+        <div class="grid-header">
+          <div class="header-cell corner">Slot</div>
+      `;
+      
+      STATIONS.forEach(s => {
+        html += `
+          <div class="header-cell" style="background: linear-gradient(135deg, ${s.color}, color-mix(in srgb, ${s.color} 70%, black))">
+            <div class="station-name">${s.name}</div>
+            <div class="station-sub">Stanowisko</div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      return html;
+    }
+
+    function renderCell(record, station) {
+      const hasWarning = record.duplikaty;
+      const hasError = record.narusza8hA || record.narusza8hB;
+      const hasB = record.traineeB && record.c;
+      
+      let cardClass = 'session-card';
+      if (hasError) cardClass += ' has-error';
+      else if (hasWarning) cardClass += ' has-duplicate';
+      
+      const progress = record.wymagane > 0 
+        ? Math.min(100, (record.exNrA / record.wymagane) * 100) 
+        : 0;
+
+      return `
+        <div class="grid-cell">
+          <div class="${cardClass}" 
+               data-station="${station.id}" 
+               onclick="showDetail(${record.id})"
+               style="--card-color: ${station.color}">
+            
+            <div class="card-header">
+              <div class="trainee-info">
+                <div class="trainee-name">Trainee #${record.traineeA || '-'}</div>
+                <div class="trainee-phase">Stanowisko ${station.id}</div>
+              </div>
+              <div class="card-badges">
+                ${hasB ? '<span class="badge has-b" title="Z Trainee B">B</span>' : ''}
+                ${hasWarning ? '<span class="badge duplicate" title="Duplikat">!</span>' : ''}
+                ${hasError ? '<span class="badge error" title="Naruszenie 8h">8h</span>' : ''}
+              </div>
+            </div>
+
+            <div class="card-details">
+              <span class="detail-tag exercise">Ćw. ${record.exNrA || '-'}/${record.wymagane || '-'}</span>
+              ${Array.isArray(record.instruktorzy) && record.instruktorzy.length > 0 
+                ? `<span class="detail-tag instructor">Instr: ${record.instruktorzy.length}</span>` 
+                : ''}
+            </div>
+
+            ${hasB ? `
+              <div class="trainee-b-section">
+                <div class="trainee-b-label">Trainee B</div>
+                <div class="trainee-name" style="font-size: 11px;">#${record.traineeB} (Ćw. ${record.exNrB || '-'})</div>
+              </div>
+            ` : ''}
+
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${progress}%"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function groupByDayAndSlot(records) {
+      const grouped = {};
+      records.forEach(r => {
+        const key = `${r.dzienPL}_${r.godzOd}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(r);
+      });
+      return grouped;
+    }
+
+    // Temporary function - later you can map records to stations based on your logic
+    function getStationForRecord(record) {
+      // For now, all records go to station 1
+      // Later you can add a Station column to GRAFIK table
+      return record.station || 1;
+    }
+
+    // ============== DETAIL PANEL ==============
+    function showDetail(recordId) {
+      selectedRecord = filteredRecords.find(r => r.id === recordId);
+      if (!selectedRecord) return;
+
+      const station = STATIONS.find(s => s.id === getStationForRecord(selectedRecord));
+      
+      document.getElementById('panel-header').style.setProperty('--panel-color', station?.color || '#3b82f6');
+      document.getElementById('panel-title').textContent = `Sesja #${selectedRecord.id}`;
+      document.getElementById('panel-subtitle').textContent = 
+        `${selectedRecord.dzienPL} | ${selectedRecord.godzOd} - ${selectedRecord.godzDo}`;
+
+      const progress = selectedRecord.wymagane > 0 
+        ? Math.round((selectedRecord.exNrA / selectedRecord.wymagane) * 100) 
+        : 0;
+
+      document.getElementById('panel-content').innerHTML = `
+        <div class="panel-section">
+          <div class="panel-section-title">Czas i miejsce</div>
+          <div class="panel-row">
+            <span class="panel-label">Tydzień</span>
+            <span class="panel-value">${selectedRecord.tydzien || '-'}</span>
+          </div>
+          <div class="panel-row">
+            <span class="panel-label">Dzień</span>
+            <span class="panel-value">${selectedRecord.dzienPL || '-'}</span>
+          </div>
+          <div class="panel-row">
+            <span class="panel-label">Godziny</span>
+            <span class="panel-value">${selectedRecord.godzOd || '-'} - ${selectedRecord.godzDo || '-'}</span>
+          </div>
+          <div class="panel-row">
+            <span class="panel-label">Stanowisko</span>
+            <span class="panel-value">${station?.name || 'TWR 1'}</span>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="panel-section-title">Trainee A</div>
+          <div class="panel-row">
+            <span class="panel-label">ID</span>
+            <span class="panel-value">#${selectedRecord.traineeA || '-'}</span>
+          </div>
+          <div class="panel-row">
+            <span class="panel-label">Numer ćwiczenia</span>
+            <span class="panel-value">${selectedRecord.exNrA || '-'} / ${selectedRecord.wymagane || '-'}</span>
+          </div>
+          <div class="panel-row">
+            <span class="panel-label">Postęp</span>
+            <span class="panel-value ${progress >= 100 ? 'success' : ''}">${progress}%</span>
+          </div>
+          ${selectedRecord.narusza8hA ? `
+            <div class="panel-row">
+              <span class="panel-label">⚠️ Ostrzeżenie</span>
+              <span class="panel-value error">Naruszenie reguły 8h</span>
+            </div>
+          ` : ''}
+        </div>
+
+        ${selectedRecord.traineeB ? `
+          <div class="panel-section">
+            <div class="panel-section-title">Trainee B ${selectedRecord.c ? '(aktywny)' : '(nieaktywny)'}</div>
+            <div class="panel-row">
+              <span class="panel-label">ID</span>
+              <span class="panel-value">#${selectedRecord.traineeB}</span>
+            </div>
+            <div class="panel-row">
+              <span class="panel-label">Numer ćwiczenia</span>
+              <span class="panel-value">${selectedRecord.exNrB || '-'}</span>
+            </div>
+            ${selectedRecord.narusza8hB ? `
+              <div class="panel-row">
+                <span class="panel-label">⚠️ Ostrzeżenie</span>
+                <span class="panel-value error">Naruszenie reguły 8h</span>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <div class="panel-section">
+          <div class="panel-section-title">Instruktorzy</div>
+          <div class="panel-row">
+            <span class="panel-label">Liczba</span>
+            <span class="panel-value">${Array.isArray(selectedRecord.instruktorzy) ? selectedRecord.instruktorzy.length : 0}</span>
+          </div>
+        </div>
+
+        ${selectedRecord.duplikaty ? `
+          <div class="panel-section">
+            <div class="panel-section-title" style="color: var(--accent-orange)">⚠️ Uwagi</div>
+            <div class="panel-row">
+              <span class="panel-label">Duplikat</span>
+              <span class="panel-value warning">Trainee A = Trainee B</span>
+            </div>
+          </div>
+        ` : ''}
+      `;
+
+      document.getElementById('detail-panel').classList.add('open');
+      document.getElementById('detail-overlay').classList.add('open');
+
+      // Notify Grist
+      grist.setCursorPos({ rowId: recordId });
+    }
+
+    function closePanel() {
+      document.getElementById('detail-panel').classList.remove('open');
+      document.getElementById('detail-overlay').classList.remove('open');
+      selectedRecord = null;
+    }
+
+    function goToRecord() {
+      if (selectedRecord) {
+        grist.setCursorPos({ rowId: selectedRecord.id });
+        // Grist will handle focusing the table view
+      }
+    }
+
+    // Keyboard shortcut
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePanel();
+    });
+  </script>
 </body>
 </html>
