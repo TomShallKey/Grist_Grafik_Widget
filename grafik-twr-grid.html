@@ -1,441 +1,705 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grafik KRL - Matrix View</title>
-  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  <style>
-    :root {
-      --bg-primary: #f8fafc;
-      --bg-card: #ffffff;
-      --border-color: #e2e8f0;
-      --text-primary: #1e293b;
-      --text-secondary: #64748b;
-      --text-muted: #94a3b8;
-      --accent-blue: #3b82f6;
-      --accent-green: #22c55e;
-      --accent-red: #ef4444;
-      --accent-orange: #f97316;
-      --accent-purple: #8b5cf6;
-      --shift2-bg: #f1f5f9;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-size: 12px;
-      line-height: 1.3;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* ========== KONTROLKI ========== */
-    .controls {
-      flex-shrink: 0;
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border-color);
-      padding: 8px 16px;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .control-group { display: flex; align-items: center; gap: 6px; }
-    .control-label { font-size: 10px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
-    
-    select {
-      padding: 4px 8px;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      font-size: 11px;
-    }
-
-    .btn {
-      padding: 4px 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      background: #f8fafc;
-      cursor: pointer;
-      font-size: 11px;
-    }
-    .btn:hover { background: #e2e8f0; }
-
-    .stats { margin-left: auto; display: flex; gap: 10px; font-size: 10px; }
-    .stat-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
-    .stat-dot.total { background: var(--accent-blue); }
-    .stat-dot.warning { background: var(--accent-orange); }
-
-    /* ========== SIATKA (MATRIX) ========== */
-    .grid-wrapper {
-      flex-grow: 1;
-      overflow: auto;
-      padding: 10px;
-    }
-
-    .schedule-grid {
-      display: grid;
-      /* KLUCZOWA ZMIANA: 1 kolumna czasu + 6 kolumn stanowisk */
-      grid-template-columns: 70px repeat(6, 1fr); 
-      gap: 2px;
-      background: var(--border-color); /* Linie siatki */
-      border: 1px solid var(--border-color);
-      min-width: 1000px; /* Wymusza przewijanie poziome na małych ekranach */
-    }
-
-    /* Nagłówek Dnia (rozciąga się na całą szerokość) */
-    .day-header {
-      grid-column: 1 / -1;
-      background: #e0e7ff;
-      color: #3730a3;
-      padding: 8px;
-      font-weight: 700;
-      font-size: 13px;
-      border-bottom: 2px solid #c7d2fe;
-      position: sticky;
-      top: 0;
-      z-index: 20;
-    }
-
-    /* Nagłówki Stanowisk */
-    .station-header {
-      background: #f1f5f9;
-      padding: 8px 4px;
-      text-align: center;
-      font-weight: 600;
-      color: var(--text-secondary);
-      font-size: 11px;
-      text-transform: uppercase;
-      position: sticky;
-      top: 35px; /* Wysokość day-header */
-      z-index: 10;
-      border-bottom: 1px solid #cbd5e1;
-    }
-
-    .station-header.corner {
-      background: #f8fafc;
-      z-index: 11;
-      left: 0;
-    }
-
-    /* Wiersz Czasu */
-    .time-slot-label {
-      background: #fff;
-      padding: 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      color: var(--text-primary);
-      position: sticky;
-      left: 0;
-      z-index: 5;
-    }
-    
-    .time-slot-label.shift2 { background: #f1f5f9; color: #475569; }
-
-    /* Komórka z danymi */
-    .grid-cell {
-      background: #fff;
-      min-height: 80px;
-      position: relative;
-    }
-
-    .grid-cell.shift2 { background: #f8fafc; }
-
-    .grid-cell.empty {
-      cursor: pointer;
-    }
-    .grid-cell.empty:hover { background: #f0f9ff; }
-    
-    /* Plusik przy hover na pustej */
-    .grid-cell.empty::after {
-      content: '+';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      color: #cbd5e1;
-      font-size: 20px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .grid-cell.empty:hover::after { opacity: 1; }
-
-    /* Karta w środku komórki */
-    .session-card {
-      height: 100%;
-      padding: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      cursor: pointer;
-      border-left: 3px solid transparent;
-      transition: all 0.1s;
-    }
-    
-    .session-card:hover { background: #f1f5f9; }
-    .session-card.selected { background: #eff6ff; border-left-color: var(--accent-blue); }
-    
-    .session-card.has-error { border-left-color: var(--accent-red); background: #fef2f2; }
-    .session-card.has-warning { border-left-color: var(--accent-orange); background: #fffbeb; }
-
-    /* Elementy wewnątrz karty */
-    .trainee-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 600;
-    }
-    .trainee-name { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
-    .ex-badge { font-size: 9px; background: #e2e8f0; padding: 1px 4px; border-radius: 3px; color: #475569; }
-    
-    .instr-row {
-      font-size: 9px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    
-    .status-badges { display: flex; gap: 2px; margin-top: auto; }
-    .mini-badge { font-size: 8px; padding: 1px 3px; border-radius: 2px; color: white; font-weight: bold; }
-    .bg-red { background: var(--accent-red); }
-    .bg-orange { background: var(--accent-orange); }
-    .bg-purple { background: var(--accent-purple); }
-
-    /* Modal */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: white; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-    .loading { padding: 20px; text-align: center; color: #94a3b8; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafik Szkoleń - Grist Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .status-indicators {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .status-dot.normal { background: #27ae60; }
+        .status-dot.duplicate { background: #e74c3c; }
+        .status-dot.violation { background: #f39c12; }
+        .status-dot.empty { background: #ecf0f1; }
+        .schedule-grid {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .grid-header {
+            display: grid;
+            grid-template-columns: 120px repeat(7, 1fr);
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .grid-header-cell {
+            padding: 15px 10px;
+            text-align: center;
+            border-right: 1px solid #2c3e50;
+        }
+        .grid-header-cell:first-child {
+            background: #2c3e50;
+            text-align: left;
+            padding-left: 20px;
+        }
+        .grid-header-cell:last-child {
+            border-right: none;
+        }
+        .grid-row {
+            display: grid;
+            grid-template-columns: 120px repeat(7, 1fr);
+            border-bottom: 1px solid #ecf0f1;
+            min-height: 80px;
+            transition: background-color 0.2s;
+        }
+        .grid-row:hover {
+            background-color: #f8f9fa;
+        }
+        .grid-row:last-child {
+            border-bottom: none;
+        }
+        .time-cell {
+            background: #f8f9fa;
+            padding: 15px 10px;
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: center;
+            border-right: 1px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+        .session-cell {
+            padding: 8px;
+            border-right: 1px solid #ecf0f1;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            min-height: 80px;
+        }
+        .session-cell:last-child {
+            border-right: none;
+        }
+        .session-cell:hover {
+            background-color: #e8f4f8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .session-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .session-empty {
+            color: #95a5a6;
+            font-style: italic;
+            text-align: center;
+            font-size: 12px;
+        }
+        .session-info {
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        .trainee-a {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+        .trainee-b {
+            color: #7f8c8d;
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+        .session-details {
+            font-size: 10px;
+            color: #95a5a6;
+        }
+        .phase-badge {
+            background: #3498db;
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            margin-left: 4px;
+        }
+        .instructor-info {
+            font-size: 9px;
+            color: #95a5a6;
+            margin-top: 2px;
+        }
+        .session-type {
+            background: #9b59b6;
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            margin-top: 2px;
+            display: inline-block;
+        }
+        .status-indicator-cell {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .edit-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .edit-modal h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        @media (max-width: 1200px) {
+            .grid-header,
+            .grid-row {
+                grid-template-columns: 100px repeat(7, 1fr);
+            }
+            
+            .session-info {
+                font-size: 10px;
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .grid-header,
+            .grid-row {
+                grid-template-columns: 80px repeat(7, 1fr);
+            }
+            
+            .grid-header-cell,
+            .time-cell {
+                padding: 10px 5px;
+                font-size: 12px;
+            }
+            
+            .session-cell {
+                padding: 4px;
+                min-height: 60px;
+            }
+        }
+    </style>
 </head>
 <body>
-
-  <div class="controls">
-    <div class="control-group">
-      <span class="control-label">Dzień:</span>
-      <select id="day-filter" onchange="applyFilters()"></select>
-    </div>
-    
-    <button class="btn" onclick="refreshData()">Odśwież</button>
-    <div class="stats">
-      <span><span class="stat-dot total"></span><span id="stat-count">0</span> sesji</span>
-    </div>
-  </div>
-
-  <div class="grid-wrapper">
-    <div id="schedule-grid" class="schedule-grid">
-      <div class="loading">Ładowanie danych...</div>
-    </div>
-  </div>
-  
-  <div id="edit-modal" class="modal-overlay" onclick="if(event.target===this) this.classList.remove('open')">
-    <div class="modal">
-      <h3>Edycja Sesji</h3>
-      <p id="modal-info" style="color: #666; margin: 10px 0; font-size: 12px;"></p>
-      <div style="background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px;">
-        Aby edytować, użyj panelu karty po prawej stronie (Linked Widget) lub kliknij wiersz w tabeli.
-      </div>
-      <button class="btn" onclick="document.getElementById('edit-modal').classList.remove('open')">Zamknij</button>
-    </div>
-  </div>
-
-  <script>
-    // ============================================
-    // KONFIGURACJA STANOWISK
-    // ============================================
-    // WPISZ TUTAJ DOKŁADNE NAZWY STANOWISK JAKIE MASZ W TABELI "Stanowiska"
-    // Kolejność tutaj decyduje o kolejności kolumn
-    const STATION_ORDER = ['TWR1', 'TWR2', 'TWR3', 'TWR4', 'TWR5', 'Beczka', 'Poznań']; 
-    
-    // Jeśli nazwy w rekordach są inne, skrypt spróbuje je dopasować, 
-    // ale najlepiej żeby pasowały do tego co zwraca kolumna Stanowisko.
-    
-    const SECOND_SHIFT_START = '14:00';
-
-    let allRecords = [];
-    let filteredRecords = [];
-    let selectedRecordId = null;
-
-    grist.ready({ requiredAccess: 'read table' });
-
-    grist.onRecords((records) => {
-      if (records.length > 0) {
-        // Mapowanie danych
-        allRecords = records.map(rec => ({
-          id: rec.id,
-          // Zakładam, że pole Stanowisko zwraca nazwę lub jest referencją gdzie Grist zwraca display value
-          // Jeśli to referencja, trzeba sprawdzić czy Grist zwraca ID czy String.
-          // Używamy bezpiecznego dostępu
-          stanowisko: extractStationName(rec.Stanowisko),
-          
-          data: rec.Data,
-          dzienPL: rec.Data_DzienPL, // Formuła z tabeli
-          godzOd: rec.Slot_Godz_od,
-          godzDo: rec.Slot_Godz_do,
-          
-          traineeA: rec.TraineeA_Nazwa,
-          traineeB: rec.TraineeB_Nazwa,
-          exNrA: rec.exNrA,
-          exNrB: rec.exNrB,
-          c: rec.C,
-          
-          instr1: rec.Instr1,
-          instr2: rec.Instr2,
-          
-          duplikaty: rec.TraineeDuplikaty,
-          narusza8h: rec.TraineeA_Narusza8h || rec.TraineeB_Narusza8h
-        }));
-        
-        // Sortowanie po godzinie
-        allRecords.sort((a, b) => (a.godzOd || '').localeCompare(b.godzOd || ''));
-        
-        updateFilters();
-        applyFilters();
-      }
-    });
-
-    // Funkcja pomocnicza do wyciągnięcia nazwy stanowiska
-    function extractStationName(val) {
-      if (!val) return 'Inne';
-      // Jeśli Grist zwraca obiekt referencji
-      if (typeof val === 'object' && val.Stanowisko) return val.Stanowisko; 
-      // Jeśli zwraca string
-      return String(val);
-    }
-
-    function updateFilters() {
-      const days = [...new Set(allRecords.map(r => r.dzienPL))].filter(Boolean);
-      const sel = document.getElementById('day-filter');
-      const current = sel.value;
-      
-      sel.innerHTML = days.map(d => `<option value="${d}">${d}</option>`).join('');
-      
-      // Jeśli nic nie wybrano, wybierz pierwszy dostępny dzień
-      if (!current && days.length > 0) sel.value = days[0];
-    }
-
-    function applyFilters() {
-      const day = document.getElementById('day-filter').value;
-      // Filtrujemy rekordy dla wybranego dnia
-      filteredRecords = allRecords.filter(r => r.dzienPL === day);
-      
-      document.getElementById('stat-count').innerText = filteredRecords.length;
-      renderGrid(day);
-    }
-
-    function renderGrid(day) {
-      const grid = document.getElementById('schedule-grid');
-      
-      if (!day) {
-        grid.innerHTML = '<div class="loading">Brak danych / Wybierz dzień</div>';
-        return;
-      }
-
-      // 1. Pobierz unikalne sloty czasowe występujące w tym dniu
-      const slots = [...new Set(filteredRecords.map(r => r.godzOd))].filter(Boolean).sort();
-      
-      if (slots.length === 0) {
-        grid.innerHTML = '<div class="loading">Brak sesji w tym dniu</div>';
-        return;
-      }
-
-      let html = '';
-
-      // --- NAGŁÓWKI ---
-      
-      // Główny nagłówek dnia
-      html += `<div class="day-header">${day}</div>`;
-      
-      // Nagłówki stanowisk (Pierwsza komórka pusta nad czasem)
-      html += `<div class="station-header corner">Godz</div>`;
-      STATION_ORDER.forEach(st => {
-        html += `<div class="station-header">${st}</div>`;
-      });
-
-      // --- WIERSZE (SLOTY) ---
-      slots.forEach(slot => {
-        const isShift2 = slot >= SECOND_SHIFT_START;
-        const shiftClass = isShift2 ? 'shift2' : '';
-        
-        // Etykieta czasu (1. kolumna)
-        html += `
-          <div class="time-slot-label ${shiftClass}">
-            ${slot}
-          </div>
-        `;
-
-        // Komórki dla każdego stanowiska (6 kolumn)
-        STATION_ORDER.forEach(station => {
-          // Znajdź rekord dla tego slotu i tego stanowiska
-          const rec = filteredRecords.find(r => r.godzOd === slot && r.stanowisko === station);
-          
-          if (rec) {
-            html += `<div class="grid-cell ${shiftClass}">
-              ${renderCard(rec)}
-            </div>`;
-          } else {
-            // Pusta komórka (możliwość dodania onclick)
-            html += `<div class="grid-cell empty ${shiftClass}" 
-                 onclick="console.log('Kliknięto pusty: ${day} ${slot} ${station}')"
-                 title="Brak sesji: ${station}"></div>`;
-          }
-        });
-      });
-
-      grid.innerHTML = html;
-    }
-
-    function renderCard(rec) {
-      let classes = 'session-card';
-      if (rec.duplikaty) classes += ' has-warning';
-      if (rec.narusza8h) classes += ' has-error';
-      if (selectedRecordId === rec.id) classes += ' selected';
-
-      // Instruktorzy - sklej imiona
-      const instrs = [rec.instr1, rec.instr2].filter(x => x && x !== 0 && x !== '0').join(', ');
-      
-      // Badges
-      let badges = '';
-      if (rec.c && rec.traineeB) badges += `<span class="mini-badge bg-purple">+B</span>`;
-      if (rec.narusza8h) badges += `<span class="mini-badge bg-red">8h</span>`;
-      if (rec.duplikaty) badges += `<span class="mini-badge bg-orange">DUP</span>`;
-
-      return `
-        <div class="${classes}" onclick="selectRecord(${rec.id})">
-          <div class="trainee-row">
-            <span class="trainee-name" title="${rec.traineeA}">${rec.traineeA || '-'}</span>
-            <span class="ex-badge">${rec.exNrA || '?'}</span>
-          </div>
-          
-          ${rec.traineeB ? `
-          <div class="trainee-row" style="opacity: 0.8">
-            <span class="trainee-name" title="${rec.traineeB}">${rec.traineeB}</span>
-            <span class="ex-badge">${rec.exNrB || '-'}</span>
-          </div>` : ''}
-
-          <div class="instr-row">${instrs}</div>
-          
-          <div class="status-badges">${badges}</div>
+    <div class="container">
+        <div class="header">
+            <h1>Grafik Szkoleń</h1>
+            <div class="status-indicators">
+                <div class="status-indicator">
+                    <div class="status-dot normal"></div>
+                    <span>Normalny</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot duplicate"></div>
+                    <span>Duplikat</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot violation"></div>
+                    <span>Naruszenie 8h</span>
+                </div>
+            </div>
         </div>
-      `;
-    }
-
-    function selectRecord(id) {
-      selectedRecordId = id;
-      grist.setCursorPos({ rowId: id }); // Synchronizacja z Gristem
-      
-      // Odśwież widok (aby pokazać zaznaczenie) - w prawdziwej appce lepiej robić to klasą CSS bez reloadu
-      const day = document.getElementById('day-filter').value;
-      renderGrid(day);
-    }
-    
-    function refreshData() {
-      location.reload(); 
-    }
-  </script>
+        <div class="schedule-grid">
+            <div class="grid-header">
+                <div class="grid-header-cell">Godzina</div>
+                <div class="grid-header-cell">TWR1</div>
+                <div class="grid-header-cell">TWR2</div>
+                <div class="grid-header-cell">TWR3</div>
+                <div class="grid-header-cell">TWR4</div>
+                <div class="grid-header-cell">TWR5</div>
+                <div class="grid-header-cell">Beczka</div>
+                <div class="grid-header-cell">Poznań</div>
+            </div>
+            <div id="schedule-body">
+                <div class="loading">Ładowanie danych...</div>
+            </div>
+        </div>
+    </div>
+    <div id="edit-modal" class="edit-modal">
+        <div class="edit-modal-content">
+            <h2>Edycja Sesji</h2>
+            <form id="edit-form">
+                <div class="form-group">
+                    <label for="edit-traineea">Trainee A:</label>
+                    <select id="edit-traineea" name="TraineeA">
+                        <option value="">Wybierz...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-traineeb">Trainee B:</label>
+                    <select id="edit-traineeb" name="TraineeB">
+                        <option value="">Wybierz...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-instr1">Instruktor 1:</label>
+                    <select id="edit-instr1" name="Instr1">
+                        <option value="">Wybierz...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-instr2">Instruktor 2:</label>
+                    <select id="edit-instr2" name="Instr2">
+                        <option value="">Wybierz...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-instr3">Instruktor 3:</label>
+                    <select id="edit-instr3" name="Instr3">
+                        <option value="">Wybierz...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-rodzaj">Rodzaj:</label>
+                    <select id="edit-rodzaj" name="Rodzaj">
+                        <option value="">Wybierz...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-c">Trainee B aktywny:</label>
+                    <input type="checkbox" id="edit-c" name="C">
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Anuluj</button>
+                    <button type="submit" class="btn btn-primary">Zapisz</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="https://grist-static.nyc3.digitaloceanspaces.com/grist-widget-api.js"></script>
+    <script>
+        // Konfiguracja stanowisk
+        const STANOWISKA = ['TWR1', 'TWR2', 'TWR3', 'TWR4', 'TWR5', 'Beczka', 'Poznań'];
+        
+        // Globalne zmienne
+        let scheduleData = {
+            slots: [],
+            sessions: [],
+            trainees: [],
+            instructors: [],
+            categories: []
+        };
+        
+        let currentEditSession = null;
+        // Inicjalizacja widgetu
+        function initWidget() {
+            grist.ready({
+                requiredAccess: 'read table',
+                columns: ['GRAFIK.*', 'Sesje.*', 'Trainee_DB.*', 'R_Instr_Ewidencja.*', 'Kategorie.*']
+            });
+            grist.on('message', handleMessage);
+            grist.on('records', handleRecords);
+            
+            // Pobierz dane
+            loadAllData();
+        }
+        // Obsługa komunikatów
+        function handleMessage(message) {
+            console.log('Received message:', message);
+        }
+        // Obsługa danych
+        function handleRecords(data) {
+            console.log('Received records:', data);
+            // Przetwarzanie danych przyjdzie później
+        }
+        // Ładowanie wszystkich danych
+        async function loadAllData() {
+            try {
+                // Pobierz sloty godzinowe
+                const slots = await grist.table('Sesje').select({
+                    columns: ['id', 'Slot', 'Godz_od', 'Godz_do']
+                });
+                
+                // Pobierz sesje
+                const sessions = await grist.table('GRAFIK').select({
+                    columns: [
+                        'id', 'Data', 'Slot', 'Stanowisko', 'TraineeA', 'TraineeB', 
+                        'Instr1', 'Instr2', 'Instr3', 'Rodzaj', 'C',
+                        'TraineeA_Nazwa', 'TraineeB_Nazwa', 'TraineeA_Faza', 'TraineeB_Faza',
+                        'TraineeDuplikaty', 'TraineeA_Narusza8h', 'TraineeB_Narusza8h'
+                    ]
+                });
+                
+                // Pobierz trainee
+                const trainees = await grist.table('Trainee_DB').select({
+                    columns: ['id', 'Trainee_NazwiskoImie', 'Faza']
+                });
+                
+                // Pobierz instruktorów
+                const instructors = await grist.table('R_Instr_Ewidencja').select({
+                    columns: ['id', 'Nazwisko', 'Imie']
+                });
+                
+                // Pobierz kategorie
+                const categories = await grist.table('Kategorie').select({
+                    columns: ['id', 'KategoriaSesji']
+                });
+                
+                scheduleData = {
+                    slots: slots.records || [],
+                    sessions: sessions.records || [],
+                    trainees: trainees.records || [],
+                    instructors: instructors.records || [],
+                    categories: categories.records || []
+                };
+                
+                renderSchedule();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Błąd ładowania danych: ' + error.message);
+            }
+        }
+        // Renderowanie harmonogramu
+        function renderSchedule() {
+            const scheduleBody = document.getElementById('schedule-body');
+            
+            if (scheduleData.slots.length === 0) {
+                scheduleBody.innerHTML = '<div class="loading">Brak danych do wyświetlenia</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            // Sortuj sloty po godzinie
+            const sortedSlots = scheduleData.slots.sort((a, b) => {
+                const timeA = a.fields.Godz_od || '';
+                const timeB = b.fields.Godz_od || '';
+                return timeA.localeCompare(timeB);
+            });
+            
+            sortedSlots.forEach(slot => {
+                const slotId = slot.id;
+                const timeSlot = slot.fields.Godz_od || '';
+                
+                html += `<div class="grid-row" data-slot="${slotId}">`;
+                html += `<div class="time-cell">${timeSlot}</div>`;
+                
+                STANOWISKA.forEach(stanowisko => {
+                    const session = findSession(slotId, stanowisko);
+                    html += createSessionCell(session, slotId, stanowisko);
+                });
+                
+                html += `</div>`;
+            });
+            
+            scheduleBody.innerHTML = html;
+        }
+        // Znajdź sesję dla danego slotu i stanowiska
+        function findSession(slotId, stanowisko) {
+            return scheduleData.sessions.find(s => {
+                const fields = s.fields;
+                return fields.Slot === slotId && fields.Stanowisko === stanowisko;
+            });
+        }
+        // Tworzenie komórki sesji
+        function createSessionCell(session, slotId, stanowisko) {
+            if (!session) {
+                return `<div class="session-cell" data-slot="${slotId}" data-stanowisko="${stanowisko}">
+                    <div class="session-content">
+                        <div class="session-empty">Wolne</div>
+                    </div>
+                </div>`;
+            }
+            
+            const fields = session.fields;
+            const hasDuplicate = fields.TraineeDuplikaty || false;
+            const hasViolation = fields.TraineeA_Narusza8h || fields.TraineeB_Narusza8h || false;
+            
+            let statusClass = 'normal';
+            if (hasDuplicate) statusClass = 'duplicate';
+            else if (hasViolation) statusClass = 'violation';
+            
+            let content = '<div class="session-content">';
+            
+            if (fields.TraineeA_Nazwa) {
+                content += `<div class="trainee-a">${fields.TraineeA_Nazwa}`;
+                if (fields.TraineeA_Faza) {
+                    content += `<span class="phase-badge">${fields.TraineeA_Faza}</span>`;
+                }
+                content += `</div>`;
+            }
+            
+            if (fields.TraineeB_Nazwa && fields.C) {
+                content += `<div class="trainee-b">${fields.TraineeB_Nazwa}`;
+                if (fields.TraineeB_Faza) {
+                    content += `<span class="phase-badge">${fields.TraineeB_Faza}</span>`;
+                }
+                content += `</div>`;
+            }
+            
+            // Instruktorzy
+            const instructors = [];
+            if (fields.Instr1) instructors.push(fields.Instr1);
+            if (fields.Instr2) instructors.push(fields.Instr2);
+            if (fields.Instr3) instructors.push(fields.Instr3);
+            
+            if (instructors.length > 0) {
+                content += `<div class="instructor-info">Instr: ${instructors.join(', ')}</div>`;
+            }
+            
+            // Rodzaj szkolenia
+            if (fields.Rodzaj) {
+                content += `<div class="session-type">${fields.Rodzaj}</div>`;
+            }
+            
+            content += '</div>';
+            
+            // Status indicator
+            content += `<div class="status-indicator-cell ${statusClass}"></div>`;
+            
+            return `<div class="session-cell" data-slot="${slotId}" data-stanowisko="${stanowisko}" 
+                    data-session-id="${session.id}" onclick="openEditModal(${session.id})">
+                ${content}
+            </div>`;
+        }
+        // Otwieranie modalu edycji
+        async function openEditModal(sessionId) {
+            currentEditSession = scheduleData.sessions.find(s => s.id === sessionId);
+            
+            if (!currentEditSession) {
+                console.error('Session not found:', sessionId);
+                return;
+            }
+            
+            // Wypełnij formularz danymi
+            const fields = currentEditSession.fields;
+            document.getElementById('edit-traineea').value = fields.TraineeA || '';
+            document.getElementById('edit-traineeb').value = fields.TraineeB || '';
+            document.getElementById('edit-instr1').value = fields.Instr1 || '';
+            document.getElementById('edit-instr2').value = fields.Instr2 || '';
+            document.getElementById('edit-instr3').value = fields.Instr3 || '';
+            document.getElementById('edit-rodzaj').value = fields.Rodzaj || '';
+            document.getElementById('edit-c').checked = fields.C || false;
+            
+            // Pokaż modal
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+        // Zamykanie modalu edycji
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+            currentEditSession = null;
+        }
+        // Zapisywanie edycji
+        async function saveEdit(event) {
+            event.preventDefault();
+            
+            if (!currentEditSession) {
+                console.error('No session to edit');
+                return;
+            }
+            
+            try {
+                const formData = new FormData(event.target);
+                const updates = {};
+                
+                // Zbierz dane z formularza
+                for (let [key, value] of formData.entries()) {
+                    if (key === 'C') {
+                        updates[key] = document.getElementById('edit-c').checked;
+                    } else if (value) {
+                        updates[key] = value;
+                    }
+                }
+                
+                // Zapisz zmiany
+                await grist.table('GRAFIK').update(currentEditSession.id, updates);
+                
+                // Zamknij modal i odśwież dane
+                closeEditModal();
+                await loadAllData();
+                
+            } catch (error) {
+                console.error('Error saving session:', error);
+                showError('Błąd zapisu: ' + error.message);
+            }
+        }
+        // Wyświetlanie błędu
+        function showError(message) {
+            const scheduleBody = document.getElementById('schedule-body');
+            scheduleBody.innerHTML = `<div class="error">${message}</div>`;
+        }
+        // Inicjalizacja po załadowaniu strony
+        document.addEventListener('DOMContentLoaded', function() {
+            // Przygotuj opcje dla selectów (będą wypełnione po załadowaniu danych)
+            populateSelects();
+            
+            // Dodaj event listener dla formularza
+            document.getElementById('edit-form').addEventListener('submit', saveEdit);
+            
+            // Inicjalizuj widget Grist
+            if (window.grist) {
+                initWidget();
+            } else {
+                showError('API Grist nie jest dostępne. Upewnij się, że widget jest uruchomiony w Grist.');
+            }
+        });
+        // Wypełnianie selectów opcjami
+        function populateSelects() {
+            // Trainee A
+            const traineeASelect = document.getElementById('edit-traineea');
+            scheduleData.trainees.forEach(trainee => {
+                const option = document.createElement('option');
+                option.value = trainee.id;
+                option.textContent = trainee.fields.Trainee_NazwiskoImie || '';
+                traineeASelect.appendChild(option);
+            });
+            
+            // Trainee B
+            const traineeBSelect = document.getElementById('edit-traineeb');
+            scheduleData.trainees.forEach(trainee => {
+                const option = document.createElement('option');
+                option.value = trainee.id;
+                option.textContent = trainee.fields.Trainee_NazwiskoImie || '';
+                traineeBSelect.appendChild(option);
+            });
+            
+            // Instruktorzy
+            const instructorSelects = ['edit-instr1', 'edit-instr2', 'edit-instr3'];
+            instructorSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                scheduleData.instructors.forEach(instructor => {
+                    const option = document.createElement('option');
+                    option.value = instructor.id;
+                    option.textContent = `${instructor.fields.Imie} ${instructor.fields.Nazwisko}` || '';
+                    select.appendChild(option);
+                });
+            });
+            
+            // Kategorie
+            const rodzajSelect = document.getElementById('edit-rodzaj');
+            scheduleData.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.fields.KategoriaSesji || '';
+                rodzajSelect.appendChild(option);
+            });
+        }
+        // Obsługa kliknięcia poza modal
+        window.onclick = function(event) {
+            const modal = document.getElementById('edit-modal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+    </script>
 </body>
 </html>
