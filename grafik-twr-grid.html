@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grist Grafik - Compact Layout</title>
+  <title>Grist Grafik - Fixed Names</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   
@@ -69,7 +69,7 @@
       display: grid;
       grid-template-columns: 60px repeat(6, 1fr);
       gap: 8px;
-      min-height: 110px; /* Nieco niższe karty */
+      min-height: 110px;
       margin-bottom: 4px;
     }
 
@@ -84,7 +84,7 @@
       font-size: 10px;
     }
 
-    /* KARTA SESJI - GŁÓWNY STYL */
+    /* KARTA SESJI */
     .session-card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -105,15 +105,14 @@
       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
 
-    /* GRID TRAINEE (GÓRA) */
+    /* GRID TRAINEE */
     .trainee-grid {
       display: grid;
-      grid-template-columns: 1fr; /* Domyślnie 1 kolumna (tylko A) */
+      grid-template-columns: 1fr;
       gap: 4px;
       flex-grow: 1;
     }
     
-    /* Jeśli włączone 2 osoby, zmień na 2 kolumny */
     .trainee-grid.dual-mode {
       grid-template-columns: 1fr 1fr; 
     }
@@ -142,7 +141,7 @@
     }
     .t-select:focus { outline: none; text-decoration: underline; }
 
-    /* Dane Faza / Ex (ŚRODEK) */
+    /* Dane Faza / Ex */
     .t-info {
       font-size: 10px;
       color: var(--text-muted);
@@ -152,7 +151,7 @@
     .info-line { display: block; }
     .accent { color: var(--primary); font-weight: 700; }
 
-    /* GRID INSTRUKTORZY (DÓŁ) */
+    /* GRID INSTRUKTORZY */
     .instr-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -172,7 +171,7 @@
       color: var(--text-main);
     }
 
-    /* Stopka (Typ + Checkbox) */
+    /* Stopka */
     .meta-footer {
       display: flex;
       justify-content: space-between;
@@ -208,7 +207,7 @@
       justify-content: center;
       color: #e5e7eb;
       font-size: 18px;
-      cursor: default; /* Można zmienić na pointer jeśli dodamy funkcję Create */
+      cursor: default;
     }
     .empty-slot:hover { background: #fafafa; }
 
@@ -221,7 +220,7 @@
 <body>
 
 <div id="app">
-  <div v-if="loading" style="text-align:center; padding:40px;">Ładowanie...</div>
+  <div v-if="loading" style="text-align:center; padding:40px;">Ładowanie i przetwarzanie nazwisk...</div>
   
   <div v-else class="schedule-container">
     
@@ -317,31 +316,53 @@
       const options = ref({ trainees: [], instr: [], cats: [], slots: {}, dates: {}, stan: {} });
       const stanowiskaCols = ref(["TWR1", "TWR2", "TWR3", "APP1", "APP2", "ACC"]);
 
+      // FUNKCJA POBIERAJĄCA DANE
       const fetchData = async () => {
         try {
-          // 1. Trainees + Fazy
-          const tTable = await grist.docApi.fetchTable('Trainee_DB');
-          const fTable = await grist.docApi.fetchTable('Fazy');
-          const fMap = {}; fTable.forEach(f => fMap[f.id] = f.Faza);
-          
-          options.value.trainees = tTable.map(r => ({
-            id: r.id, 
-            name: r.Trainee_NazwiskoImie || `Tr #${r.id}`,
-            faza: fMap[r.Faza] || '?'
-          })).sort((a,b) => a.name.localeCompare(b.name));
+          // 1. Pobieramy KURSANTÓW (Nazwiska są w tabeli 'Kursy')
+          // Najpierw pobierzmy tabelę bazową z nazwiskami
+          const kursyTable = await grist.docApi.fetchTable('Kursy');
+          const kursyMap = {}; // ID_Kursu -> "Kowalski Jan"
+          kursyTable.forEach(k => {
+             const naz = k.Nazwisko || '';
+             const im = k.Imie || '';
+             kursyMap[k.id] = (naz + ' ' + im).trim();
+          });
 
-          // 2. Instruktorzy
+          // 2. Pobieramy FAZY
+          const fazyTable = await grist.docApi.fetchTable('Fazy');
+          const fazyMap = {}; 
+          fazyTable.forEach(f => fazyMap[f.id] = f.Faza);
+
+          // 3. Pobieramy TRAINEE_DB (To jest tabela, której używa GRAFIK)
+          // Ta tabela łączy się z Kursy przez ID_Trainee
+          const traineeDbTable = await grist.docApi.fetchTable('Trainee_DB');
+          
+          options.value.trainees = traineeDbTable.map(row => {
+            // row.ID_Trainee to numer rekordu w tabeli Kursy
+            // row.Faza to numer rekordu w tabeli Fazy
+            const realName = kursyMap[row.ID_Trainee]; 
+            const realFaza = fazyMap[row.Faza];
+
+            return {
+              id: row.id, 
+              name: realName ? realName : `Brak danych (${row.id})`, // Fallback
+              faza: realFaza || '-'
+            };
+          }).sort((a,b) => a.name.localeCompare(b.name));
+
+          // 4. Instruktorzy
           const iTable = await grist.docApi.fetchTable('R_Instr_Ewidencja');
           options.value.instr = iTable.map(r => ({
             id: r.id, 
             initials: (r.Imie?.[0]||'') + (r.Nazwisko?.substring(0,3)||'')
           })).sort((a,b) => a.initials.localeCompare(b.initials));
 
-          // 3. Kategorie
+          // 5. Kategorie
           const cTable = await grist.docApi.fetchTable('Kategorie');
           options.value.cats = cTable.map(r => ({ id: r.id, name: r.KategoriaSesji }));
 
-          // 4. Sloty, Stanowiska, Daty
+          // 6. Słowniki (Sloty, Stanowiska, Kalendarz)
           const sTable = await grist.docApi.fetchTable('Sesje');
           sTable.forEach(s => options.value.slots[s.id] = { start: s.Godz_od, end: s.Godz_do });
           
@@ -351,7 +372,9 @@
           const dTable = await grist.docApi.fetchTable('Kalendarz_DniPracy');
           dTable.forEach(d => options.value.dates[d.id] = d.Data);
 
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+          console.error("Błąd pobierania danych:", e);
+        }
       };
 
       const processedData = computed(() => {
@@ -360,7 +383,7 @@
         records.value.forEach(r => {
           const dRaw = options.value.dates[r.Data];
           if(!dRaw) return;
-          const dKey = new Date(dRaw*1000).toISOString().split('T')[0]; // ISO Key
+          const dKey = new Date(dRaw*1000).toISOString().split('T')[0];
           
           if(!grp[dKey]) {
             grp[dKey] = {
@@ -398,7 +421,7 @@
         if(field === 'C') val = !!val;
         try {
           await grist.docApi.applyUserActions([ ['UpdateRecord', 'GRAFIK', rec.id, { [field]: val }] ]);
-        } catch(e) { alert('Err'); } 
+        } catch(e) { alert('Błąd zapisu'); } 
         finally { rec._saving = false; }
       };
 
