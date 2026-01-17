@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grist Grafik Manager</title>
+  <title>Grist Grafik Manager v2</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   
   <style>
     :root {
-      --bg-color: #f7f9fc;
+      --bg-color: #f3f4f6;
       --card-bg: #ffffff;
-      --border-color: #e2e8f0;
-      --text-main: #2d3748;
-      --text-light: #718096;
-      --accent: #3182ce;
-      --danger: #e53e3e;
-      --slot-header-bg: #edf2f7;
+      --border-color: #e5e7eb;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --primary: #2563eb;       /* Niebieski akcent */
+      --primary-light: #eff6ff;
+      --danger: #ef4444;
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
       background-color: var(--bg-color);
       margin: 0;
       padding: 20px;
@@ -28,72 +28,83 @@
       font-size: 13px;
     }
 
-    /* Layout Główny */
+    /* Układ główny */
     .schedule-container {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 24px;
+      padding-bottom: 50px;
     }
 
     .loading {
-      text-align: center;
-      padding: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: var(--text-muted);
       font-size: 1.2em;
-      color: var(--text-light);
     }
 
-    /* Nagłówki Kolumn (Stanowiska) */
+    /* Nagłówek Tabeli */
     .header-row {
       display: grid;
-      grid-template-columns: 80px repeat(6, 1fr); /* 1 kolumna na czas, 6 na stanowiska */
-      gap: 10px;
+      grid-template-columns: 70px repeat(6, 1fr); /* 1 kolumna czas, 6 stanowisk */
+      gap: 12px;
       position: sticky;
       top: 0;
       background: var(--bg-color);
-      z-index: 10;
+      z-index: 20;
       padding-bottom: 10px;
-      border-bottom: 2px solid var(--border-color);
+      border-bottom: 1px solid #d1d5db;
     }
 
     .header-col {
+      font-size: 0.85em;
       font-weight: 700;
-      text-align: center;
       text-transform: uppercase;
-      color: var(--text-light);
-      padding: 5px;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 8px;
     }
 
-    /* Grupa Dnia */
-    .day-group {
-      margin-bottom: 30px;
-    }
-
-    .day-header {
-      font-size: 1.1em;
-      font-weight: 700;
+    /* Sekcja Dnia */
+    .day-section {
       margin-bottom: 10px;
-      padding-left: 5px;
-      border-left: 4px solid var(--accent);
-      color: var(--accent);
     }
 
-    /* Wiersz Slotu Czasowego */
+    .day-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 12px;
+      padding-left: 10px;
+      border-left: 4px solid var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Wiersz z czasem (Slot) */
     .slot-row {
       display: grid;
-      grid-template-columns: 80px repeat(6, 1fr);
-      gap: 10px;
-      margin-bottom: 10px;
+      grid-template-columns: 70px repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+      min-height: 140px; /* Minimalna wysokość wiersza */
     }
 
-    .time-label {
+    .time-cell {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       font-weight: 600;
-      background: var(--slot-header-bg);
-      border-radius: 6px;
-      color: var(--text-main);
+      color: var(--text-muted);
+      font-size: 0.9em;
+      text-align: center;
     }
+    .time-cell span { display: block; }
 
     /* Karta Sesji */
     .session-card {
@@ -101,194 +112,245 @@
       border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      transition: all 0.2s;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      justify-content: space-between;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: box-shadow 0.2s, border-color 0.2s;
       position: relative;
+      height: 100%; 
+      box-sizing: border-box;
     }
 
     .session-card:hover {
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      border-color: var(--accent);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      border-color: var(--primary);
     }
 
-    .empty-slot {
-      border: 1px dashed var(--border-color);
-      background: transparent;
-      opacity: 0.5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8em;
-      color: var(--text-light);
-    }
-
-    /* Pola Edycji wewnątrz karty */
-    .field-group {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .field-label {
-      font-size: 10px;
-      color: var(--text-light);
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-
-    select, input {
-      width: 100%;
-      padding: 4px;
-      border: 1px solid #edf2f7;
-      border-radius: 4px;
-      font-size: 12px;
-      background: #f8fafc;
-      color: var(--text-main);
-    }
-
-    select:focus, input:focus {
-      outline: none;
-      border-color: var(--accent);
-      background: #fff;
-    }
-
-    .trainee-select {
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    .instr-row {
-      display: flex;
-      gap: 5px;
-    }
-    
-    .instr-select {
-      font-size: 11px;
-    }
-
-    .meta-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 4px;
-      padding-top: 4px;
-      border-top: 1px solid #f0f0f0;
-    }
-
-    .category-badge {
-      font-size: 10px;
-      padding: 2px 4px;
-      border-radius: 4px;
-      background: #edf2f7;
-    }
-
-    /* Spinner zapisu */
-    .saving-indicator {
+    /* Wskaźnik zapisu */
+    .saving-dot {
       position: absolute;
-      top: 5px;
-      right: 5px;
-      width: 8px;
-      height: 8px;
-      background: var(--accent);
+      top: 8px;
+      right: 8px;
+      width: 6px;
+      height: 6px;
+      background-color: var(--primary);
       border-radius: 50%;
       animation: pulse 1s infinite;
     }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-    @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(49, 130, 206, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(49, 130, 206, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(49, 130, 206, 0); }
+    /* Sekcja Trainee */
+    .trainee-section {
+      margin-bottom: 8px;
     }
+    
+    .trainee-row {
+      margin-bottom: 8px;
+      border-bottom: 1px dashed #f3f4f6;
+      padding-bottom: 6px;
+    }
+    .trainee-row:last-child { border-bottom: none; }
+
+    .trainee-select {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 13px;
+      padding: 2px 0;
+      cursor: pointer;
+      margin-bottom: 2px;
+    }
+    .trainee-select:hover { background: #f9fafb; border-radius: 4px; }
+    .trainee-select:focus { outline: 2px solid var(--primary-light); }
+
+    .trainee-info {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: block;
+      margin-top: -2px;
+      margin-bottom: 2px;
+    }
+    
+    .phase-badge {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+
+    /* Grid Instruktorów (3 kolumny) */
+    .instr-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+      margin-top: auto; /* Dopycha do dołu */
+      padding-top: 8px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .instr-select {
+      width: 100%;
+      font-size: 10px;
+      padding: 3px;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      background: #f9fafb;
+      color: var(--text-main);
+      text-align: center;
+    }
+
+    /* Stopka karty (Typ + Checkbox) */
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .type-select {
+      font-size: 10px;
+      border: 1px solid transparent;
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: var(--text-muted);
+      max-width: 80px;
+    }
+
+    .dual-toggle {
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    /* Pusty slot */
+    .empty-slot {
+      border: 1px dashed #e5e7eb;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #d1d5db;
+      font-size: 20px;
+      transition: all 0.2s;
+    }
+    .empty-slot:hover {
+      background: #fafafa;
+      border-color: #d1d5db;
+      color: #9ca3af;
+      cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
 
 <div id="app">
-  <div v-if="loading" class="loading">Ładowanie danych grafiku...</div>
+  <div v-if="loading" class="loading">Ładowanie grafiku...</div>
   
   <div v-else class="schedule-container">
     
     <div class="header-row">
-      <div class="header-col">Czas</div>
-      <div class="header-col" v-for="col in stanowiskaCols" :key="col">
-        {{ col }}
-      </div>
+      <div class="header-col"></div> <div class="header-col" v-for="col in stanowiskaCols" :key="col">{{ col }}</div>
     </div>
 
-    <div v-for="dateGroup in processedData" :key="dateGroup.dateStr" class="day-group">
-      <div class="day-header">{{ formatDate(dateGroup.dateStr) }} ({{ dateGroup.dayName }})</div>
+    <div v-for="dateGroup in processedData" :key="dateGroup.dateStr" class="day-section">
+      <div class="day-title">
+        {{ dateGroup.dayName }}, {{ formatDate(dateGroup.dateStr) }}
+      </div>
 
       <div v-for="slot in dateGroup.slots" :key="slot.timeId" class="slot-row">
         
-        <div class="time-label">
-          {{ slot.label }}
+        <div class="time-cell">
+          <span>{{ slot.labelStart }}</span>
+          <span style="font-size:0.8em; color:#9ca3af;">-</span>
+          <span>{{ slot.labelEnd }}</span>
         </div>
 
         <div v-for="stanowiskoName in stanowiskaCols" :key="stanowiskoName">
           
           <div v-if="slot.positions[stanowiskoName]" class="session-card">
-            <div v-if="slot.positions[stanowiskoName]._saving" class="saving-indicator"></div>
+            <div v-if="slot.positions[stanowiskoName]._saving" class="saving-dot"></div>
 
-            <div class="field-group">
-              <label class="field-label">Trainee A</label>
-              <select class="trainee-select" 
-                      v-model="slot.positions[stanowiskoName].TraineeA" 
-                      @change="updateRecord(slot.positions[stanowiskoName], 'TraineeA')">
-                <option :value="0">- Brak -</option>
-                <option v-for="t in options.trainees" :value="t.id">{{ t.name }}</option>
-              </select>
-            </div>
-
-            <div class="field-group" v-if="slot.positions[stanowiskoName].C || slot.positions[stanowiskoName].TraineeB">
-              <label class="field-label">Trainee B</label>
-              <select class="trainee-select" 
-                      v-model="slot.positions[stanowiskoName].TraineeB"
-                      @change="updateRecord(slot.positions[stanowiskoName], 'TraineeB')">
-                <option :value="0">- Brak -</option>
-                <option v-for="t in options.trainees" :value="t.id">{{ t.name }}</option>
-              </select>
-            </div>
-
-            <div class="field-group">
-              <label class="field-label">Instruktorzy</label>
-              <div class="instr-row">
-                <select class="instr-select" 
-                        v-model="slot.positions[stanowiskoName].Instr1"
-                        @change="updateRecord(slot.positions[stanowiskoName], 'Instr1')">
-                  <option :value="0">-</option>
-                  <option v-for="i in options.instructors" :value="i.id">{{ i.initials }}</option>
+            <div class="trainee-section">
+              <div class="trainee-row">
+                <select class="trainee-select" 
+                        v-model="slot.positions[stanowiskoName].TraineeA" 
+                        @change="updateRecord(slot.positions[stanowiskoName], 'TraineeA')">
+                  <option :value="0" style="color:#ccc">Wybierz Trainee A...</option>
+                  <option v-for="t in options.trainees" :value="t.id">{{ t.name }}</option>
                 </select>
-                <select class="instr-select" 
-                        v-model="slot.positions[stanowiskoName].Instr2"
-                        @change="updateRecord(slot.positions[stanowiskoName], 'Instr2')">
-                  <option :value="0">-</option>
-                  <option v-for="i in options.instructors" :value="i.id">{{ i.initials }}</option>
+                
+                <div class="trainee-info" v-if="slot.positions[stanowiskoName].TraineeA">
+                   <span class="phase-badge">{{ getTraineePhase(slot.positions[stanowiskoName].TraineeA) }}</span> 
+                   • Ćw. {{ slot.positions[stanowiskoName].exNrA || '-' }}
+                </div>
+              </div>
+
+              <div class="trainee-row" v-if="slot.positions[stanowiskoName].C">
+                <select class="trainee-select" 
+                        v-model="slot.positions[stanowiskoName].TraineeB"
+                        @change="updateRecord(slot.positions[stanowiskoName], 'TraineeB')">
+                  <option :value="0" style="color:#ccc">Wybierz Trainee B...</option>
+                  <option v-for="t in options.trainees" :value="t.id">{{ t.name }}</option>
                 </select>
+                <div class="trainee-info" v-if="slot.positions[stanowiskoName].TraineeB">
+                  <span class="phase-badge">{{ getTraineePhase(slot.positions[stanowiskoName].TraineeB) }}</span>
+                  • Ćw. {{ slot.positions[stanowiskoName].exNrB || '-' }}
+                </div>
               </div>
             </div>
 
-            <div class="meta-row">
-               <select style="width: 70px;" 
+            <div class="instr-grid">
+               <select class="instr-select" title="Instruktor 1"
+                       v-model="slot.positions[stanowiskoName].Instr1"
+                       @change="updateRecord(slot.positions[stanowiskoName], 'Instr1')">
+                 <option :value="0">-</option>
+                 <option v-for="i in options.instructors" :value="i.id">{{ i.initials }}</option>
+               </select>
+
+               <select class="instr-select" title="Instruktor 2"
+                       v-model="slot.positions[stanowiskoName].Instr2"
+                       @change="updateRecord(slot.positions[stanowiskoName], 'Instr2')">
+                 <option :value="0">-</option>
+                 <option v-for="i in options.instructors" :value="i.id">{{ i.initials }}</option>
+               </select>
+
+               <select class="instr-select" title="Instruktor 3"
+                       v-model="slot.positions[stanowiskoName].Instr3"
+                       @change="updateRecord(slot.positions[stanowiskoName], 'Instr3')">
+                 <option :value="0">-</option>
+                 <option v-for="i in options.instructors" :value="i.id">{{ i.initials }}</option>
+               </select>
+            </div>
+
+            <div class="card-footer">
+               <select class="type-select" 
                        v-model="slot.positions[stanowiskoName].Rodzaj"
                        @change="updateRecord(slot.positions[stanowiskoName], 'Rodzaj')">
-                  <option :value="0">Typ</option>
+                  <option :value="0">--</option>
                   <option v-for="c in options.categories" :value="c.id">{{ c.name }}</option>
                </select>
 
-               <label style="font-size:10px; display:flex; align-items:center; cursor:pointer;" title="Włącz Trainee B">
-                 <input type="checkbox" style="width:auto; margin-right:4px;" 
+               <label class="dual-toggle" title="Włącz drugiego uczestnika">
+                 <input type="checkbox" 
                         v-model="slot.positions[stanowiskoName].C"
                         @change="updateRecord(slot.positions[stanowiskoName], 'C')">
                  2os.
                </label>
             </div>
-
           </div>
 
-          <div v-else class="empty-slot">
-            </div>
+          <div v-else class="empty-slot" @click="createRecord(dateGroup, slot, stanowiskoName)">
+            +
+          </div>
 
         </div>
       </div>
@@ -303,33 +365,42 @@
     setup() {
       const loading = ref(true);
       const rawRecords = ref([]);
+      // Mapowania ID -> Dane
       const options = ref({
-        trainees: [],
-        instructors: [],
-        categories: [],
-        slots: {},     // map id -> label
-        dates: {},     // map id -> date obj
-        stanowiska: {} // map id -> name
+        trainees: [],     // { id, name, faza }
+        instructors: [],  // { id, initials }
+        categories: [],   // { id, name }
+        slots: {},        // id -> { start, end }
+        dates: {},        // id -> timestamp/string
+        stanowiska: {},   // id -> name
+        stanowiskaRev: {} // name -> id (do tworzenia nowych)
       });
       
-      // Stała lista kolumn, aby zachować kolejność
       const stanowiskaCols = ref(["TWR1", "TWR2", "TWR3", "APP1", "APP2", "ACC"]);
 
-      // Pobieranie danych słownikowych
+      // --- Pobieranie Danych ---
       const fetchAuxiliaryTables = async () => {
         try {
-          // 1. Trainees
+          // 1. Trainees - kluczowe dla nazwisk i faz
+          // Musimy pobrać kolumnę Trainee_NazwiskoImie oraz Faza (która jest Ref)
+          // API zwraca References jako ID. Potrzebujemy dodatkowego kroku jeśli Faza to tylko ID.
+          // Zakładam, że w Trainee_DB mamy kolumnę "ID_Trainee_Faza" lub po prostu "Faza"
           const traineesTable = await grist.docApi.fetchTable('Trainee_DB');
-          // Łączymy z tabelą Kursy, aby mieć Nazwisko. 
-          // W Grist API fetchTable zwraca surowe dane. Dla Reference dostajemy ID.
-          // Tutaj upraszczamy: Zakładamy, że Trainee_NazwiskoImie jest dostępne w Trainee_DB jako kolumna tekstowa (wzór)
-          // Jeśli jest to kolumna Formuły w Grist, fetchTable ją zwróci.
+          
+          // Pobierzmy nazwy faz (opcjonalnie, jeśli Faza w Trainee_DB to ID)
+          const fazyTable = await grist.docApi.fetchTable('Fazy');
+          const fazyMap = {};
+          fazyTable.forEach(f => fazyMap[f.id] = f.Faza);
+
           options.value.trainees = traineesTable.map(r => ({
              id: r.id, 
-             name: r.Trainee_NazwiskoImie || `ID: ${r.id}` 
+             // Używamy kolumny Trainee_NazwiskoImie zdefiniowanej w Pythonie
+             name: r.Trainee_NazwiskoImie || `Trainee #${r.id}`, 
+             // Mapujemy ID fazy na nazwę fazy
+             fazaName: fazyMap[r.Faza] || '?'
           })).sort((a,b) => a.name.localeCompare(b.name));
 
-          // 2. Instruktorzy (R_Instr_Ewidencja)
+          // 2. Instruktorzy
           const instrTable = await grist.docApi.fetchTable('R_Instr_Ewidencja');
           options.value.instructors = instrTable.map(r => ({
             id: r.id,
@@ -343,122 +414,125 @@
             name: r.KategoriaSesji
           }));
 
-          // 4. Sesje (Sloty) - potrzebujemy mapowania ID -> "07:00 - 08:30"
+          // 4. Sloty (Godziny)
           const slotsTable = await grist.docApi.fetchTable('Sesje');
           slotsTable.forEach(s => {
-            options.value.slots[s.id] = `${s.Godz_od} - ${s.Godz_do}`;
+            options.value.slots[s.id] = { start: s.Godz_od, end: s.Godz_do };
           });
 
-          // 5. Stanowiska - mapowanie ID -> Nazwa
+          // 5. Stanowiska
           const stanTable = await grist.docApi.fetchTable('Stanowiska');
           stanTable.forEach(s => {
             options.value.stanowiska[s.id] = s.Stanowisko;
+            options.value.stanowiskaRev[s.Stanowisko] = s.id;
           });
           
-          // 6. Kalendarz (daty)
+          // 6. Daty
           const datesTable = await grist.docApi.fetchTable('Kalendarz_DniPracy');
-          // Daty przychodzą jako sekundy lub obiekty w zależności od API. Zazwyczaj timestamp.
           datesTable.forEach(d => {
-             // Konwersja daty. W Grist fetchTable data to często uniksowy timestamp lub string.
              options.value.dates[d.id] = d.Data; 
           });
 
         } catch (e) {
-          console.error("Błąd pobierania tabel pomocniczych:", e);
+          console.error("Błąd tabel pomocniczych:", e);
         }
       };
 
-      // Główna logika przetwarzania danych do wyświetlenia
+      // --- Przetwarzanie ---
       const processedData = computed(() => {
         if (!rawRecords.value.length) return [];
-
         const grouped = {};
 
         rawRecords.value.forEach(rec => {
-          // Pobierz datę
-          const dateVal = options.value.dates[rec.Data]; // rec.Data to ID
+          const dateVal = options.value.dates[rec.Data];
           if (!dateVal) return;
           
-          // Klucz daty (użyj timestamp lub stringa ISO)
-          const dateKey = new Date(dateVal * 1000).toISOString().split('T')[0];
+          // Data jako klucz (format ISO YYYY-MM-DD dla sortowania)
+          const dObj = new Date(dateVal * 1000); // Grist dates are often seconds
+          const dateKey = dObj.toISOString().split('T')[0];
           
           if (!grouped[dateKey]) {
             grouped[dateKey] = {
               dateStr: dateKey,
-              dateObj: new Date(dateVal * 1000),
-              dayName: new Date(dateVal * 1000).toLocaleDateString('pl-PL', {weekday: 'long'}),
+              dayName: dObj.toLocaleDateString('pl-PL', {weekday: 'long'}),
               slotsMap: {}
             };
           }
 
-          // Pobierz Slot
           const slotId = rec.Slot;
-          const slotLabel = options.value.slots[slotId] || "??:??";
+          const slotInfo = options.value.slots[slotId] || { start: '??', end: '??' };
 
           if (!grouped[dateKey].slotsMap[slotId]) {
             grouped[dateKey].slotsMap[slotId] = {
               timeId: slotId,
-              label: slotLabel,
-              positions: {} // Tutaj będą rekordy przypisane do stanowisk
+              labelStart: slotInfo.start,
+              labelEnd: slotInfo.end,
+              positions: {}
             };
           }
 
-          // Pobierz Stanowisko
-          const stanName = options.value.stanowiska[rec.Stanowisko]; // rec.Stanowisko to ID
+          const stanName = options.value.stanowiska[rec.Stanowisko];
           if (stanName) {
             grouped[dateKey].slotsMap[slotId].positions[stanName] = { ...rec, _saving: false };
           }
         });
 
-        // Konwersja obiektu na tablicę i sortowanie
         const result = Object.values(grouped).sort((a,b) => a.dateStr.localeCompare(b.dateStr));
-
+        
         result.forEach(day => {
-          // Sortowanie slotów wewnątrz dnia (według etykiety godziny - uproszczenie, lepiej po ID jeśli ID są sekwencyjne lub dodać pole kolejności)
-          day.slots = Object.values(day.slotsMap).sort((a,b) => a.label.localeCompare(b.label));
+          // Sortujemy sloty po godzinie startu
+          day.slots = Object.values(day.slotsMap).sort((a,b) => 
+            a.labelStart.localeCompare(b.labelStart)
+          );
         });
-
         return result;
       });
 
-      // Funkcja zapisu do Grist
+      // --- Helpers ---
+      const getTraineePhase = (traineeId) => {
+        if (!traineeId) return '';
+        const t = options.value.trainees.find(x => x.id === traineeId);
+        return t ? t.fazaName : '-';
+      };
+
+      const formatDate = (isoStr) => {
+        const d = new Date(isoStr);
+        return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
+      };
+
+      // --- Actions ---
       const updateRecord = async (record, field) => {
         record._saving = true;
         try {
           let value = record[field];
-          
-          // Obsługa Reference: jeśli wybrano '0', wyślij null
-          if (value === 0 || value === "0") value = null;
-          
-          // Konwersja Bool dla pola C
-          if (field === 'C') value = !!value;
+          if (value === 0 || value === "0") value = null; // Grist Reference null handling
+          if (field === 'C') value = !!value; // Ensure Bool
 
           await grist.docApi.applyUserActions([
             ['UpdateRecord', 'GRAFIK', record.id, { [field]: value }]
           ]);
         } catch (e) {
-          console.error("Błąd zapisu:", e);
-          alert("Nie udało się zapisać zmiany.");
+          console.error(e);
+          alert("Błąd zapisu!");
         } finally {
           record._saving = false;
         }
       };
 
-      const formatDate = (isoStr) => {
-        const d = new Date(isoStr);
-        return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+      // Opcjonalne: Tworzenie nowego rekordu po kliknięciu w pusty slot
+      // To wymagałoby wiedzy o ID daty i ID slotu z kontekstu pętli
+      const createRecord = async (dayGroup, slot, stanName) => {
+        // Musimy znaleźć ID daty na podstawie dayGroup.dateStr
+        // To jest trudniejsze bo mamy mapę id->data, a tu mamy datę.
+        // Uproszczenie: w prawdziwym wdrożeniu lepiej przekazywać ID daty w dół.
+        // Tutaj tylko placeholder.
+        console.log("Create logic not fully implemented yet without explicit IDs");
       };
 
       onMounted(async () => {
-        // 1. Inicjalizacja API
         grist.ready({ requiredAccess: 'full' });
-
-        // 2. Pobranie słowników
         await fetchAuxiliaryTables();
-
-        // 3. Nasłuchiwanie na rekordy (tabela GRAFIK)
         grist.onRecords((records) => {
-          // records to tablica obiektów z mapowanymi kolumnami
           rawRecords.value = records;
           loading.value = false;
         });
@@ -470,7 +544,9 @@
         options,
         stanowiskaCols,
         updateRecord,
-        formatDate
+        formatDate,
+        getTraineePhase,
+        createRecord
       };
     }
   }).mount('#app');
