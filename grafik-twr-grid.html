@@ -2,300 +2,970 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GRAFIK - Visual Schedule</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    :root {
+      --bg-primary: #f8f9fc;
+      --bg-secondary: #ffffff;
+      --bg-hover: #f0f2f8;
+      --border-light: #e2e6ef;
+      --border-medium: #d0d5e0;
+      --text-primary: #1a1d26;
+      --text-secondary: #5c6478;
+      --text-muted: #8b92a5;
+      
+      /* Stanowiska colors - pastel tones */
+      --twr1-bg: #e8f4ec;
+      --twr1-border: #7bc794;
+      --twr1-accent: #2d8a52;
+      
+      --twr2-bg: #e8f0f8;
+      --twr2-border: #7ba8d4;
+      --twr2-accent: #2d6a9f;
+      
+      --twr3-bg: #f4f0e8;
+      --twr3-border: #d4c87b;
+      --twr3-accent: #8a7a2d;
+      
+      --twr4-bg: #f4e8ec;
+      --twr4-border: #d47b94;
+      --twr4-accent: #9f2d5a;
+      
+      --twr5-bg: #ece8f4;
+      --twr5-border: #9b7bd4;
+      --twr5-accent: #5a2d9f;
+      
+      --twr6-bg: #e8f2f4;
+      --twr6-border: #7bc4d4;
+      --twr6-accent: #2d7a8a;
+      
+      /* Status colors */
+      --error-bg: #fef2f2;
+      --error-border: #f87171;
+      --error-text: #dc2626;
+      
+      --warning-bg: #fffbeb;
+      --warning-border: #fbbf24;
+      --warning-text: #d97706;
+      
+      /* Category colors */
+      --cat-sim: #10b981;
+      --cat-ojt: #3b82f6;
+      --cat-krl: #8b5cf6;
+      --cat-other: #6b7280;
+      
+      --shadow-sm: 0 1px 2px rgba(26, 29, 38, 0.04);
+      --shadow-md: 0 4px 12px rgba(26, 29, 38, 0.08);
+      --shadow-lg: 0 8px 24px rgba(26, 29, 38, 0.12);
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+    
+    * {
       margin: 0;
       padding: 0;
-      background-color: #f7f7f7;
-      height: 100vh;
-      overflow: hidden;
+      box-sizing: border-box;
     }
-
-    #app {
+    
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    
+    .container {
+      padding: 20px;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    
+    .header {
       display: flex;
-      flex-direction: column;
-      height: 100%;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
     }
-
-    .controls {
-      padding: 8px 16px;
-      background: white;
-      border-bottom: 1px solid #ddd;
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+    
+    .header-info {
       display: flex;
       gap: 20px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .header-info span {
+      display: flex;
       align-items: center;
-      flex-shrink: 0;
+      gap: 6px;
     }
-
-    .schedule-container {
-      flex-grow: 1;
-      overflow: auto;
-      padding: 10px;
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
-
-    .grid {
+    
+    .badge-count {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+    
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .filter-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.85rem;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    
+    .filter-select:hover {
+      border-color: var(--border-medium);
+    }
+    
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--twr1-accent);
+    }
+    
+    /* Grid Layout */
+    .schedule-grid {
       display: grid;
-      gap: 4px;
-      padding-bottom: 50px;
+      grid-template-columns: 140px repeat(6, 1fr);
+      gap: 2px;
+      background: var(--border-light);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
     }
-
-    .header-col {
-      background: #4B4B4B;
-      color: white;
-      padding: 8px;
+    
+    /* Header Row */
+    .grid-header {
+      display: contents;
+    }
+    
+    .grid-header-cell {
+      background: var(--bg-secondary);
+      padding: 16px 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
       text-align: center;
-      font-weight: bold;
+      color: var(--text-primary);
       position: sticky;
       top: 0;
       z-index: 10;
-      border-radius: 4px;
-      min-width: 140px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    .header-row {
-      background: #e0e0e0;
-      padding: 10px;
-      font-weight: bold;
+    
+    .grid-header-cell.corner {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    
+    .grid-header-cell.twr1 { border-bottom: 3px solid var(--twr1-accent); }
+    .grid-header-cell.twr2 { border-bottom: 3px solid var(--twr2-accent); }
+    .grid-header-cell.twr3 { border-bottom: 3px solid var(--twr3-accent); }
+    .grid-header-cell.twr4 { border-bottom: 3px solid var(--twr4-accent); }
+    .grid-header-cell.twr5 { border-bottom: 3px solid var(--twr5-accent); }
+    .grid-header-cell.twr6 { border-bottom: 3px solid var(--twr6-accent); }
+    
+    /* Row Headers */
+    .row-header {
+      background: var(--bg-secondary);
+      padding: 12px;
       display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-right: 1px solid var(--border-light);
+    }
+    
+    .row-date {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+    
+    .row-day {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .row-slot {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
+    /* Grid Cells */
+    .grid-cell {
+      background: var(--bg-secondary);
+      padding: 8px;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .grid-cell.empty {
+      background: var(--bg-primary);
+    }
+    
+    /* Session Cards */
+    .session-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      border-left: 4px solid var(--border-medium);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    
+    .session-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    /* Stanowisko-specific styling */
+    .session-card.twr1 { background: var(--twr1-bg); border-left-color: var(--twr1-accent); }
+    .session-card.twr2 { background: var(--twr2-bg); border-left-color: var(--twr2-accent); }
+    .session-card.twr3 { background: var(--twr3-bg); border-left-color: var(--twr3-accent); }
+    .session-card.twr4 { background: var(--twr4-bg); border-left-color: var(--twr4-accent); }
+    .session-card.twr5 { background: var(--twr5-bg); border-left-color: var(--twr5-accent); }
+    .session-card.twr6 { background: var(--twr6-bg); border-left-color: var(--twr6-accent); }
+    
+    /* Error/Warning states */
+    .session-card.has-error {
+      border-left-color: var(--error-border);
+      background: var(--error-bg);
+    }
+    
+    .session-card.has-warning {
+      border-left-color: var(--warning-border);
+      background: var(--warning-bg);
+    }
+    
+    /* Card content */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+    
+    .trainee-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+    
+    .trainee-name.trainee-b {
+      color: var(--text-secondary);
+      font-weight: 500;
+      padding-left: 8px;
+      border-left: 2px solid var(--border-light);
+      margin-top: 4px;
+    }
+    
+    .phase-badge {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      position: sticky;
-      left: 0;
-      z-index: 5;
-      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      flex-shrink: 0;
     }
-
-    .cell {
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      padding: 6px;
-      font-size: 11px;
-      min-height: 80px;
-      cursor: pointer;
+    
+    .phase-1 { background: #dbeafe; color: #1e40af; }
+    .phase-2 { background: #dcfce7; color: #166534; }
+    .phase-3 { background: #fef3c7; color: #92400e; }
+    .phase-4 { background: #fce7f3; color: #9d174d; }
+    
+    .ex-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+    
+    .card-details {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      transition: all 0.1s;
-      position: relative;
-    }
-
-    .cell:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      border-color: #999;
-    }
-
-    /* KLASA DLA WYBRANEGO REKORDU */
-    .cell.selected {
-      border: 2px solid #2196F3;
-      background-color: #e3f2fd;
-      box-shadow: 0 0 0 1px #2196F3;
-      z-index: 2;
-    }
-
-    .cell.empty {
-      background: #fafafa;
-      border: 1px dashed #ddd;
-      cursor: default;
-    }
-    .cell.empty:hover { transform: none; box-shadow: none; }
-
-    .trainee-row {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 2px;
-    }
-    .trainee-name { font-weight: 600; color: #333; }
-    .trainee-ex { font-weight: bold; color: #d32f2f; }
-
-    .instr-row {
-      color: #555;
-      font-style: italic;
-      font-size: 10px;
-    }
-
-    .cat-badge {
-      align-self: flex-start;
-      background: #e0f2f1;
-      color: #00695c;
-      padding: 2px 4px;
-      border-radius: 3px;
-      font-size: 9px;
-      margin-top: auto; 
     }
     
-    .loading { padding: 20px; text-align: center; }
+    .card-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+    }
+    
+    .card-label {
+      color: var(--text-muted);
+      min-width: 28px;
+    }
+    
+    .card-value {
+      color: var(--text-secondary);
+    }
+    
+    .instructors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    
+    .instructor-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+    
+    .instructor-tag.duplicate {
+      background: var(--error-bg);
+      color: var(--error-text);
+      border: 1px solid var(--error-border);
+    }
+    
+    .category-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    
+    .category-sim { background: #d1fae5; color: var(--cat-sim); }
+    .category-ojt { background: #dbeafe; color: var(--cat-ojt); }
+    .category-krl { background: #ede9fe; color: var(--cat-krl); }
+    .category-other { background: #f3f4f6; color: var(--cat-other); }
+    
+    /* Error indicators */
+    .error-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      color: var(--error-text);
+      margin-top: 6px;
+    }
+    
+    .error-indicator svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+    
+    /* Loading/Empty states */
+    .loading-state,
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    
+    .loading-state svg,
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    .loading-spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      flex-wrap: wrap;
+    }
+    
+    .legend-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .legend-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .legend-items {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .schedule-grid {
+        grid-template-columns: 120px repeat(6, minmax(140px, 1fr));
+      }
+    }
+    
+    /* Tooltips */
+    .tooltip {
+      position: relative;
+    }
+    
+    .tooltip::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 10px;
+      background: var(--text-primary);
+      color: white;
+      font-size: 0.7rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+      z-index: 100;
+    }
+    
+    .tooltip:hover::after {
+      opacity: 1;
+      visibility: visible;
+    }
   </style>
 </head>
 <body>
-
-<div id="app">
-  <div class="controls">
-    <label>
-      Data: <input type="date" v-model="selectedDate">
-    </label>
-    <div style="font-size: 12px; color: #666;">
-      Kliknij kafelek, aby edytować go w panelu Karty obok.
-    </div>
-  </div>
-
-  <div class="schedule-container" v-if="ready">
-    <div class="grid" :style="{ gridTemplateColumns: `80px repeat(${stations.length}, 1fr)` }">
-      
-      <div class="header-col" style="background:transparent;"></div>
-
-      <div v-for="station in stations" :key="station" class="header-col">
-        {{ station }}
+  <div class="container">
+    <div class="header">
+      <h1>📋 GRAFIK Szkoleń</h1>
+      <div class="header-info">
+        <span id="session-count" class="badge badge-count">Ładowanie...</span>
       </div>
-
-      <template v-for="slot in slots" :key="slot">
-        <div class="header-row">{{ slot }}</div>
-
-        <div v-for="station in stations" :key="station + slot" 
-             :class="['cell', { 
-               empty: !getCell(slot, station),
-               selected: isSelected(getCell(slot, station))
-             }]"
-             @click="selectRecord(getCell(slot, station))">
-          
-          <template v-if="getCell(slot, station)">
-            <div class="trainee-row" v-if="getCell(slot, station).TraineeA">
-              <span class="trainee-name">{{ getCell(slot, station).TraineeA }}</span>
-              <span class="trainee-ex">{{ getCell(slot, station).ExA }}</span>
-            </div>
-
-            <div class="trainee-row" v-if="getCell(slot, station).TraineeB && getCell(slot, station).C">
-              <span class="trainee-name">{{ getCell(slot, station).TraineeB }}</span>
-              <span class="trainee-ex">{{ getCell(slot, station).ExB }}</span>
-            </div>
-
-            <div class="instr-row">
-               {{ formatInstr(getCell(slot, station)) }}
-            </div>
-
-            <div class="cat-badge" v-if="getCell(slot, station).Rodzaj">
-              {{ getCell(slot, station).Rodzaj }}
-            </div>
-          </template>
-
+    </div>
+    
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Tydzień:</span>
+        <select id="filter-week" class="filter-select">
+          <option value="">Wszystkie</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Stanowisko:</span>
+        <select id="filter-stanowisko" class="filter-select">
+          <option value="">Wszystkie</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Rodzaj:</span>
+        <select id="filter-rodzaj" class="filter-select">
+          <option value="">Wszystkie</option>
+        </select>
+      </div>
+    </div>
+    
+    <div id="schedule-container">
+      <div class="loading-state">
+        <svg class="loading-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" opacity="0.25"/>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+        </svg>
+        <span>Ładowanie danych z Grist...</span>
+      </div>
+    </div>
+    
+    <div class="legend">
+      <div class="legend-section">
+        <span class="legend-title">Fazy</span>
+        <div class="legend-items">
+          <div class="legend-item"><span class="phase-badge phase-1">F1</span> Faza 1</div>
+          <div class="legend-item"><span class="phase-badge phase-2">F2</span> Faza 2</div>
+          <div class="legend-item"><span class="phase-badge phase-3">F3</span> Faza 3</div>
+          <div class="legend-item"><span class="phase-badge phase-4">F4</span> Faza 4</div>
         </div>
-      </template>
-
+      </div>
+      <div class="legend-section">
+        <span class="legend-title">Błędy</span>
+        <div class="legend-items">
+          <div class="legend-item"><span class="legend-color" style="background: var(--error-bg); border-color: var(--error-border);"></span> Duplikat / Naruszenie 8h</div>
+          <div class="legend-item"><span class="legend-color" style="background: var(--warning-bg); border-color: var(--warning-border);"></span> Ostrzeżenie</div>
+        </div>
+      </div>
     </div>
   </div>
-  <div v-else class="loading">Ładowanie...</div>
-</div>
 
-<script>
-  const { createApp, ref, computed, onMounted } = Vue;
-
-  createApp({
-    setup() {
-      const records = ref([]);
-      const ready = ref(false);
-      const selectedDate = ref(new Date().toISOString().split('T')[0]);
-      const selectedRecordId = ref(null);
+  <script>
+    // Configuration
+    const STANOWISKA = ['TWR1', 'TWR2', 'TWR3', 'TWR4', 'TWR5', 'TWR6'];
+    
+    // State
+    let allRecords = [];
+    let filteredRecords = [];
+    
+    // Initialize Grist
+    grist.ready({
+      requiredAccess: 'read table',
+      columns: [
+        { name: 'Data', title: 'Data', optional: true },
+        { name: 'Slot', title: 'Slot', optional: true },
+        { name: 'Stanowisko', title: 'Stanowisko', optional: true },
+        { name: 'TraineeA', title: 'Trainee A', optional: true },
+        { name: 'TraineeA_Nazwa', title: 'Trainee A Nazwa', optional: true },
+        { name: 'TraineeA_Faza', title: 'Trainee A Faza', optional: true },
+        { name: 'exNrA', title: 'Ex Nr A', optional: true },
+        { name: 'TraineeB', title: 'Trainee B', optional: true },
+        { name: 'TraineeB_Nazwa', title: 'Trainee B Nazwa', optional: true },
+        { name: 'TraineeB_Faza', title: 'Trainee B Faza', optional: true },
+        { name: 'exNrB', title: 'Ex Nr B', optional: true },
+        { name: 'C', title: 'C (Combined)', optional: true },
+        { name: 'Instr1', title: 'Instruktor 1', optional: true },
+        { name: 'Instr2', title: 'Instruktor 2', optional: true },
+        { name: 'Instr3', title: 'Instruktor 3', optional: true },
+        { name: 'instr1dup', title: 'Instr1 Duplikat', optional: true },
+        { name: 'instr2dup', title: 'Instr2 Duplikat', optional: true },
+        { name: 'instr3dup', title: 'Instr3 Duplikat', optional: true },
+        { name: 'Rodzaj', title: 'Rodzaj', optional: true },
+        { name: 'Data_DzienPL', title: 'Dzień PL', optional: true },
+        { name: 'Data_Tydzien', title: 'Tydzień', optional: true },
+        { name: 'Slot_Godz_od', title: 'Godzina od', optional: true },
+        { name: 'Slot_Godz_do', title: 'Godzina do', optional: true },
+        { name: 'TraineeDuplikaty', title: 'Trainee Duplikaty', optional: true },
+        { name: 'TraineeA_Narusza8h', title: 'Trainee A Narusza 8h', optional: true },
+        { name: 'TraineeB_Narusza8h', title: 'Trainee B Narusza 8h', optional: true },
+      ]
+    });
+    
+    // Listen for records
+    grist.onRecords(function(records, mappings) {
+      console.log('Received records:', records.length);
       
-      const COL_MAPPING = {
-        Data: 'Data',
-        Slot: 'Slot_Godz_od',
-        Stanowisko: 'Stanowisko',
-        TraineeA: 'TraineeA_Nazwa',
-        TraineeB: 'TraineeB_Nazwa',
-        ExA: 'exNrA',
-        ExB: 'exNrB',
-        Instr1: 'Instr1',
-        Instr2: 'Instr2',
-        Instr3: 'Instr3',
-        Rodzaj: 'Rodzaj',
-        C: 'C'
-      };
-
-      const parseDate = (val) => {
-        if (!val) return null;
-        if (typeof val === 'number') return new Date(val * 1000).toISOString().split('T')[0];
-        if (typeof val === 'string') return val.split('T')[0];
-        return String(val);
-      };
-
-      onMounted(() => {
-        grist.ready({requiredAccess: 'read table'});
+      // Map column names if mappings exist
+      if (mappings) {
+        allRecords = records.map(r => grist.mapColumnNames(r) || r);
+      } else {
+        allRecords = records;
+      }
+      
+      updateFilters();
+      applyFilters();
+    });
+    
+    // Update filter dropdowns
+    function updateFilters() {
+      const weeks = [...new Set(allRecords.map(r => r.Data_Tydzien).filter(Boolean))].sort();
+      const stanowiska = [...new Set(allRecords.map(r => getStanowiskoName(r.Stanowisko)).filter(Boolean))].sort();
+      const rodzaje = [...new Set(allRecords.map(r => getRodzajName(r.Rodzaj)).filter(Boolean))].sort();
+      
+      updateSelect('filter-week', weeks);
+      updateSelect('filter-stanowisko', stanowiska);
+      updateSelect('filter-rodzaj', rodzaje);
+    }
+    
+    function updateSelect(id, options) {
+      const select = document.getElementById(id);
+      const currentValue = select.value;
+      
+      // Keep first option (Wszystkie)
+      while (select.options.length > 1) {
+        select.remove(1);
+      }
+      
+      options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        select.appendChild(option);
+      });
+      
+      select.value = currentValue;
+    }
+    
+    // Filter change handlers
+    document.getElementById('filter-week').addEventListener('change', applyFilters);
+    document.getElementById('filter-stanowisko').addEventListener('change', applyFilters);
+    document.getElementById('filter-rodzaj').addEventListener('change', applyFilters);
+    
+    function applyFilters() {
+      const weekFilter = document.getElementById('filter-week').value;
+      const stanowiskoFilter = document.getElementById('filter-stanowisko').value;
+      const rodzajFilter = document.getElementById('filter-rodzaj').value;
+      
+      filteredRecords = allRecords.filter(r => {
+        if (weekFilter && r.Data_Tydzien !== weekFilter) return false;
+        if (stanowiskoFilter && getStanowiskoName(r.Stanowisko) !== stanowiskoFilter) return false;
+        if (rodzajFilter && getRodzajName(r.Rodzaj) !== rodzajFilter) return false;
+        return true;
+      });
+      
+      renderSchedule();
+    }
+    
+    // Helper functions
+    function getStanowiskoName(stanowisko) {
+      if (!stanowisko) return null;
+      if (typeof stanowisko === 'object' && stanowisko.Stanowisko) {
+        return stanowisko.Stanowisko;
+      }
+      if (typeof stanowisko === 'string') return stanowisko;
+      return `Stanowisko ${stanowisko}`;
+    }
+    
+    function getRodzajName(rodzaj) {
+      if (!rodzaj) return null;
+      if (typeof rodzaj === 'object' && rodzaj.KategoriaSesji) {
+        return rodzaj.KategoriaSesji;
+      }
+      if (typeof rodzaj === 'string') return rodzaj;
+      return rodzaj;
+    }
+    
+    function getFazaNumber(faza) {
+      if (!faza) return null;
+      if (typeof faza === 'object' && faza.Faza) {
+        const match = faza.Faza.match(/\d+/);
+        return match ? parseInt(match[0]) : null;
+      }
+      if (typeof faza === 'string') {
+        const match = faza.match(/\d+/);
+        return match ? parseInt(match[0]) : null;
+      }
+      return faza;
+    }
+    
+    function formatDate(data) {
+      if (!data) return '';
+      if (typeof data === 'object' && data.Data) {
+        const d = new Date(data.Data * 1000);
+        return d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+      }
+      if (typeof data === 'number') {
+        const d = new Date(data * 1000);
+        return d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit' });
+      }
+      return data;
+    }
+    
+    function getInstructorName(instr) {
+      if (!instr) return null;
+      if (typeof instr === 'object') {
+        if (instr.ID2) return instr.ID2;
+        if (instr.Nazwisko && instr.Imie) {
+          return instr.Nazwisko.substring(0, 4) + instr.Imie.substring(0, 3);
+        }
+        if (instr.Nazwisko) return instr.Nazwisko.substring(0, 6);
+      }
+      if (typeof instr === 'string') return instr;
+      return null;
+    }
+    
+    // Render the schedule grid
+    function renderSchedule() {
+      const container = document.getElementById('schedule-container');
+      
+      // Update count
+      document.getElementById('session-count').textContent = `${filteredRecords.length} sesji`;
+      
+      if (filteredRecords.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span>Brak sesji do wyświetlenia</span>
+          </div>
+        `;
+        return;
+      }
+      
+      // Group records by Data + Slot
+      const grouped = groupRecords(filteredRecords);
+      
+      // Build grid HTML
+      let html = '<div class="schedule-grid">';
+      
+      // Header row
+      html += '<div class="grid-header">';
+      html += '<div class="grid-header-cell corner">Data / Slot</div>';
+      STANOWISKA.forEach((s, i) => {
+        const cssClass = `twr${i + 1}`;
+        html += `<div class="grid-header-cell ${cssClass}">${s}</div>`;
+      });
+      html += '</div>';
+      
+      // Data rows
+      const rows = Object.keys(grouped).sort((a, b) => {
+        const [dataA, slotA] = a.split('|');
+        const [dataB, slotB] = b.split('|');
+        if (dataA !== dataB) return dataA.localeCompare(dataB);
+        return slotA.localeCompare(slotB);
+      });
+      
+      rows.forEach(rowKey => {
+        const rowData = grouped[rowKey];
+        const firstRecord = rowData[Object.keys(rowData)[0]]?.[0];
         
-        grist.onRecords((data) => {
-          records.value = grist.mapColumnNames(data, COL_MAPPING);
+        // Row header
+        html += `<div class="row-header">`;
+        html += `<span class="row-date">${formatDate(firstRecord?.Data) || rowKey.split('|')[0]}</span>`;
+        html += `<span class="row-day">${firstRecord?.Data_DzienPL || ''}</span>`;
+        html += `<span class="row-slot">${firstRecord?.Slot_Godz_od || ''} - ${firstRecord?.Slot_Godz_do || ''}</span>`;
+        html += `</div>`;
+        
+        // Cells for each stanowisko
+        STANOWISKA.forEach((stanowisko, idx) => {
+          const sessions = rowData[stanowisko] || [];
+          const cssClass = `twr${idx + 1}`;
           
-          // Nasłuchuj zmian kursora w Grist (jeśli klikniesz w innej tabeli)
-          grist.onRecord((rec) => {
-            if(rec) {
-               selectedRecordId.value = rec.id;
-               const mapped = grist.mapColumnNames(rec, COL_MAPPING);
-               if(mapped.Data) selectedDate.value = parseDate(mapped.Data);
-            }
-          });
-          ready.value = true;
+          if (sessions.length === 0) {
+            html += `<div class="grid-cell empty"></div>`;
+          } else {
+            html += `<div class="grid-cell">`;
+            sessions.forEach(session => {
+              html += renderSessionCard(session, cssClass);
+            });
+            html += `</div>`;
+          }
         });
       });
-
-      const currentSessions = computed(() => {
-        return records.value.filter(r => parseDate(r.Data) === selectedDate.value);
-      });
-
-      const slots = computed(() => {
-        const s = new Set(currentSessions.value.map(r => r.Slot).filter(Boolean));
-        return Array.from(s).sort();
-      });
-
-      const stations = computed(() => {
-         // Tutaj możesz wpisać na sztywno listę stanowisk, jeśli chcesz zachować kolejność
-         // return ['TWR', 'GND', 'DEL', 'APP', 'ACC', 'SUP'];
-         const s = new Set(currentSessions.value.map(r => String(r.Stanowisko || 'Bezimienne')));
-         return Array.from(s).sort();
-      });
-
-      const getCell = (slot, station) => {
-        return currentSessions.value.find(r => 
-          r.Slot === slot && 
-          String(r.Stanowisko || 'Bezimienne') === station
-        );
-      };
-
-      const formatInstr = (rec) => {
-        const i = [rec.Instr1, rec.Instr2, rec.Instr3].filter(x => x && x !== '0' && x !== 0);
-        return i.length ? 'Instr: ' + i.join(', ') : '';
-      };
-
-      const selectRecord = (rec) => {
-        if (rec && rec.id) {
-          selectedRecordId.value = rec.id; // Zaznacz wizualnie
-          grist.setCursorPos({rowId: rec.id}); // Wyślij sygnał do Grist
-        }
-      };
-
-      const isSelected = (rec) => {
-        return rec && rec.id === selectedRecordId.value;
-      };
-
-      return {
-        ready,
-        records,
-        selectedDate,
-        currentSessions,
-        slots,
-        stations,
-        getCell,
-        formatInstr,
-        selectRecord,
-        isSelected
-      };
+      
+      html += '</div>';
+      container.innerHTML = html;
     }
-  }).mount('#app');
-</script>
-
+    
+    function groupRecords(records) {
+      const grouped = {};
+      
+      records.forEach(r => {
+        const dataKey = formatDate(r.Data) || 'unknown';
+        const slotKey = r.Slot_Godz_od || 'unknown';
+        const stanowisko = getStanowiskoName(r.Stanowisko) || 'TWR1';
+        
+        const rowKey = `${dataKey}|${slotKey}`;
+        
+        if (!grouped[rowKey]) {
+          grouped[rowKey] = {};
+        }
+        if (!grouped[rowKey][stanowisko]) {
+          grouped[rowKey][stanowisko] = [];
+        }
+        grouped[rowKey][stanowisko].push(r);
+      });
+      
+      return grouped;
+    }
+    
+    function renderSessionCard(session, cssClass) {
+      const hasTraineeDup = session.TraineeDuplikaty;
+      const hasInstrDup = session.instr1dup || session.instr2dup || session.instr3dup;
+      const has8hViolation = session.TraineeA_Narusza8h || session.TraineeB_Narusza8h;
+      const hasError = hasTraineeDup || has8hViolation;
+      
+      let cardClass = `session-card ${cssClass}`;
+      if (hasError) cardClass += ' has-error';
+      else if (hasInstrDup) cardClass += ' has-warning';
+      
+      const fazaA = getFazaNumber(session.TraineeA_Faza);
+      const fazaB = getFazaNumber(session.TraineeB_Faza);
+      const rodzaj = getRodzajName(session.Rodzaj);
+      
+      let html = `<div class="${cardClass}">`;
+      
+      // Header with trainee A
+      html += `<div class="card-header">`;
+      html += `<div>`;
+      html += `<span class="trainee-name">${session.TraineeA_Nazwa || '—'}</span>`;
+      if (session.exNrA) {
+        html += `<span class="ex-number">#${session.exNrA}</span>`;
+      }
+      html += `</div>`;
+      if (fazaA) {
+        html += `<span class="phase-badge phase-${fazaA}">F${fazaA}</span>`;
+      }
+      html += `</div>`;
+      
+      // Trainee B (if exists and C is true)
+      if (session.TraineeB_Nazwa && session.C) {
+        html += `<div class="card-header" style="margin-top: 4px;">`;
+        html += `<div>`;
+        html += `<span class="trainee-name trainee-b">${session.TraineeB_Nazwa}</span>`;
+        if (session.exNrB) {
+          html += `<span class="ex-number">#${session.exNrB}</span>`;
+        }
+        html += `</div>`;
+        if (fazaB) {
+          html += `<span class="phase-badge phase-${fazaB}" style="transform: scale(0.85);">F${fazaB}</span>`;
+        }
+        html += `</div>`;
+      }
+      
+      // Details
+      html += `<div class="card-details">`;
+      
+      // Instructors
+      const instr1 = getInstructorName(session.Instr1);
+      const instr2 = getInstructorName(session.Instr2);
+      const instr3 = getInstructorName(session.Instr3);
+      
+      if (instr1 || instr2 || instr3) {
+        html += `<div class="card-row">`;
+        html += `<span class="card-label">Instr:</span>`;
+        html += `<div class="instructors">`;
+        if (instr1) {
+          const dupClass = session.instr1dup ? ' duplicate' : '';
+          html += `<span class="instructor-tag${dupClass}">${instr1}</span>`;
+        }
+        if (instr2) {
+          const dupClass = session.instr2dup ? ' duplicate' : '';
+          html += `<span class="instructor-tag${dupClass}">${instr2}</span>`;
+        }
+        if (instr3) {
+          const dupClass = session.instr3dup ? ' duplicate' : '';
+          html += `<span class="instructor-tag${dupClass}">${instr3}</span>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+      }
+      
+      // Rodzaj (category)
+      if (rodzaj) {
+        let catClass = 'category-other';
+        const rodzajLower = rodzaj.toLowerCase();
+        if (rodzajLower.includes('sim')) catClass = 'category-sim';
+        else if (rodzajLower.includes('ojt')) catClass = 'category-ojt';
+        else if (rodzajLower.includes('krl')) catClass = 'category-krl';
+        
+        html += `<div class="card-row">`;
+        html += `<span class="category-tag ${catClass}">${rodzaj}</span>`;
+        html += `</div>`;
+      }
+      
+      html += `</div>`;
+      
+      // Error indicators
+      if (hasError || hasInstrDup) {
+        html += `<div class="error-indicator">`;
+        html += `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>`;
+        
+        const errors = [];
+        if (hasTraineeDup) errors.push('Duplikat trainee');
+        if (session.TraineeA_Narusza8h) errors.push('8h: Trainee A');
+        if (session.TraineeB_Narusza8h) errors.push('8h: Trainee B');
+        if (hasInstrDup) errors.push('Duplikat instruktora');
+        
+        html += `<span>${errors.join(', ')}</span>`;
+        html += `</div>`;
+      }
+      
+      html += `</div>`;
+      return html;
+    }
+  </script>
 </body>
 </html>
