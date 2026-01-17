@@ -20,7 +20,6 @@
       height: 100%;
     }
 
-    /* Controls Header */
     .controls {
       padding: 8px 16px;
       background: white;
@@ -31,17 +30,6 @@
       flex-shrink: 0;
     }
 
-    .date-picker {
-      font-size: 14px;
-      padding: 4px;
-    }
-
-    .info {
-      font-size: 12px;
-      color: #666;
-    }
-
-    /* Grid Container */
     .schedule-container {
       flex-grow: 1;
       overflow: auto;
@@ -50,11 +38,10 @@
 
     .grid {
       display: grid;
-      /* Columns will be set dynamically via style */
       gap: 4px;
+      padding-bottom: 50px;
     }
 
-    /* Headers */
     .header-col {
       background: #4B4B4B;
       color: white;
@@ -65,7 +52,8 @@
       top: 0;
       z-index: 10;
       border-radius: 4px;
-      min-width: 150px;
+      min-width: 140px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .header-row {
@@ -81,7 +69,6 @@
       border-radius: 4px;
     }
 
-    /* Data Cell */
     .cell {
       background: white;
       border: 1px solid #ccc;
@@ -93,13 +80,22 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      transition: background 0.2s;
+      transition: all 0.1s;
       position: relative;
     }
 
     .cell:hover {
-      background: #f0f8ff;
-      border-color: #3b82f6;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-color: #999;
+    }
+
+    /* KLASA DLA WYBRANEGO REKORDU */
+    .cell.selected {
+      border: 2px solid #2196F3;
+      background-color: #e3f2fd;
+      box-shadow: 0 0 0 1px #2196F3;
+      z-index: 2;
     }
 
     .cell.empty {
@@ -107,8 +103,8 @@
       border: 1px dashed #ddd;
       cursor: default;
     }
+    .cell.empty:hover { transform: none; box-shadow: none; }
 
-    /* Content Styling */
     .trainee-row {
       display: flex;
       justify-content: space-between;
@@ -131,7 +127,7 @@
       padding: 2px 4px;
       border-radius: 3px;
       font-size: 9px;
-      margin-top: auto; /* Push to bottom */
+      margin-top: auto; 
     }
     
     .loading { padding: 20px; text-align: center; }
@@ -142,28 +138,30 @@
 <div id="app">
   <div class="controls">
     <label>
-      <strong>Data Grafiku:</strong>
-      <input type="date" class="date-picker" v-model="selectedDate" @change="manualDateChange">
+      Data: <input type="date" v-model="selectedDate">
     </label>
-    <span class="info">Liczba sesji: {{ currentSessions.length }}</span>
+    <div style="font-size: 12px; color: #666;">
+      Kliknij kafelek, aby edytować go w panelu Karty obok.
+    </div>
   </div>
 
   <div class="schedule-container" v-if="ready">
     <div class="grid" :style="{ gridTemplateColumns: `80px repeat(${stations.length}, 1fr)` }">
       
-      <div class="header-col" style="background:transparent; z-index: 11; background-color: #f7f7f7;"></div>
+      <div class="header-col" style="background:transparent;"></div>
 
       <div v-for="station in stations" :key="station" class="header-col">
         {{ station }}
       </div>
 
       <template v-for="slot in slots" :key="slot">
-        <div class="header-row">
-          {{ slot }}
-        </div>
+        <div class="header-row">{{ slot }}</div>
 
         <div v-for="station in stations" :key="station + slot" 
-             :class="['cell', { empty: !getCell(slot, station) }]"
+             :class="['cell', { 
+               empty: !getCell(slot, station),
+               selected: isSelected(getCell(slot, station))
+             }]"
              @click="selectRecord(getCell(slot, station))">
           
           <template v-if="getCell(slot, station)">
@@ -178,7 +176,7 @@
             </div>
 
             <div class="instr-row">
-               Instr: {{ formatInstr(getCell(slot, station)) }}
+               {{ formatInstr(getCell(slot, station)) }}
             </div>
 
             <div class="cat-badge" v-if="getCell(slot, station).Rodzaj">
@@ -191,7 +189,7 @@
 
     </div>
   </div>
-  <div v-else class="loading">Ładowanie danych...</div>
+  <div v-else class="loading">Ładowanie...</div>
 </div>
 
 <script>
@@ -202,8 +200,8 @@
       const records = ref([]);
       const ready = ref(false);
       const selectedDate = ref(new Date().toISOString().split('T')[0]);
+      const selectedRecordId = ref(null);
       
-      // CONFIGURATION: Mapowanie nazw kolumn z Grist
       const COL_MAPPING = {
         Data: 'Data',
         Slot: 'Slot_Godz_od',
@@ -219,58 +217,47 @@
         C: 'C'
       };
 
-      // Helper to parse Grist date (seconds or ISO string)
       const parseDate = (val) => {
         if (!val) return null;
         if (typeof val === 'number') return new Date(val * 1000).toISOString().split('T')[0];
-        if (typeof val === 'string') return val.split('T')[0]; // Assuming ISO like format
-        return String(val); // Fallback
+        if (typeof val === 'string') return val.split('T')[0];
+        return String(val);
       };
 
       onMounted(() => {
         grist.ready({requiredAccess: 'read table'});
         
         grist.onRecords((data) => {
-          // Transform raw Grist records into easier objects
           records.value = grist.mapColumnNames(data, COL_MAPPING);
           
-          // Try to set date to the cursor's date if available, else today
-          // We look at the last selected record if possible, but simplistic approach first:
-          if (records.value.length > 0) {
-             // Default logic: If user selects a row in Grist, filter widget by that date
-             grist.onRecord((rec) => {
-               if(rec) {
-                 const mapped = grist.mapColumnNames(rec, COL_MAPPING);
-                 if(mapped.Data) {
-                    selectedDate.value = parseDate(mapped.Data);
-                 }
-               }
-             });
-          }
+          // Nasłuchuj zmian kursora w Grist (jeśli klikniesz w innej tabeli)
+          grist.onRecord((rec) => {
+            if(rec) {
+               selectedRecordId.value = rec.id;
+               const mapped = grist.mapColumnNames(rec, COL_MAPPING);
+               if(mapped.Data) selectedDate.value = parseDate(mapped.Data);
+            }
+          });
           ready.value = true;
         });
       });
 
-      // Filter records by selected date
       const currentSessions = computed(() => {
         return records.value.filter(r => parseDate(r.Data) === selectedDate.value);
       });
 
-      // Extract unique Slots (sorted)
       const slots = computed(() => {
         const s = new Set(currentSessions.value.map(r => r.Slot).filter(Boolean));
-        return Array.from(s).sort(); // String sort works for "08:00", "09:00"
+        return Array.from(s).sort();
       });
 
-      // Extract unique Stations (sorted)
       const stations = computed(() => {
-         // You can hardcode stations here if you want a fixed order, e.g.:
-         // return ['Stanowisko 1', 'Stanowisko 2', ...];
+         // Tutaj możesz wpisać na sztywno listę stanowisk, jeśli chcesz zachować kolejność
+         // return ['TWR', 'GND', 'DEL', 'APP', 'ACC', 'SUP'];
          const s = new Set(currentSessions.value.map(r => String(r.Stanowisko || 'Bezimienne')));
          return Array.from(s).sort();
       });
 
-      // Helper to find record for a specific cell
       const getCell = (slot, station) => {
         return currentSessions.value.find(r => 
           r.Slot === slot && 
@@ -280,17 +267,18 @@
 
       const formatInstr = (rec) => {
         const i = [rec.Instr1, rec.Instr2, rec.Instr3].filter(x => x && x !== '0' && x !== 0);
-        return i.join(', ');
+        return i.length ? 'Instr: ' + i.join(', ') : '';
       };
 
       const selectRecord = (rec) => {
         if (rec && rec.id) {
-          grist.setCursorPos({rowId: rec.id});
+          selectedRecordId.value = rec.id; // Zaznacz wizualnie
+          grist.setCursorPos({rowId: rec.id}); // Wyślij sygnał do Grist
         }
       };
 
-      const manualDateChange = () => {
-        // User changed date manually
+      const isSelected = (rec) => {
+        return rec && rec.id === selectedRecordId.value;
       };
 
       return {
@@ -303,7 +291,7 @@
         getCell,
         formatInstr,
         selectRecord,
-        manualDateChange
+        isSelected
       };
     }
   }).mount('#app');
