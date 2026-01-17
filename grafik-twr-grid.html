@@ -3,30 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grafik TWR</title>
+  <title>Grafik KRL - Widget</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     :root {
-      --bg-primary: #f1f5f9;
+      --bg-primary: #f8fafc;
       --bg-card: #ffffff;
       --border-color: #e2e8f0;
       --text-primary: #1e293b;
       --text-secondary: #64748b;
       --text-muted: #94a3b8;
-      --twr1-color: #3b82f6;
+      --accent-blue: #3b82f6;
       --accent-green: #22c55e;
       --accent-red: #ef4444;
       --accent-orange: #f97316;
-      --row-label-width: 80px;
+      --accent-purple: #8b5cf6;
+      --shift1-bg: #ffffff;
+      --shift2-bg: #f1f5f9;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
+      font-size: 13px;
       line-height: 1.4;
     }
 
+    /* ========== KONTROLKI ========== */
     .controls {
       position: sticky;
       top: 0;
@@ -39,181 +45,360 @@
       align-items: center;
       flex-wrap: wrap;
     }
-    .control-group { display: flex; align-items: center; gap: 6px; }
-    .control-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
-    select {
-      padding: 5px 8px;
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .control-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    select, input[type="date"] {
+      padding: 6px 10px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
       font-size: 12px;
       background: #fff;
+      color: var(--text-primary);
+      min-width: 120px;
     }
-    .stats { margin-left: auto; display: flex; gap: 14px; font-size: 11px; }
-    .stat { display: flex; align-items: center; gap: 4px; }
-    .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .stat-dot.total { background: var(--twr1-color); }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .stats {
+      margin-left: auto;
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .stat-dot.total { background: var(--accent-blue); }
     .stat-dot.warning { background: var(--accent-orange); }
     .stat-dot.error { background: var(--accent-red); }
 
-    .grid-wrapper { padding: 12px; overflow-x: auto; }
+    .status-indicator {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .status-ok { background: #dcfce7; color: #166534; }
+    .status-saving { background: #fef3c7; color: #92400e; }
+    .status-error { background: #fee2e2; color: #991b1b; }
+
+    /* ========== SIATKA ========== */
+    .grid-wrapper {
+      padding: 12px;
+      overflow-x: auto;
+    }
+
     .schedule-grid {
       display: grid;
-      grid-template-columns: var(--row-label-width) repeat(6, minmax(200px, 1fr));
+      grid-template-columns: 90px 1fr;
       gap: 1px;
       background: var(--border-color);
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      min-width: 600px;
     }
-    .grid-header { display: contents; }
-    .header-cell {
-      background: linear-gradient(135deg, #1e293b, #334155);
-      color: white;
-      padding: 12px 8px;
-      text-align: center;
-      font-weight: 600;
-      font-size: 12px;
-    }
-    .header-cell.corner { background: #0f172a; font-size: 11px; }
 
+    /* Nagłówek dnia */
     .day-header {
       grid-column: 1 / -1;
       background: linear-gradient(90deg, #e0e7ff, #eef2ff);
-      padding: 8px 16px;
-      font-weight: 600;
-      font-size: 13px;
+      padding: 10px 16px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       border-top: 2px solid #c7d2fe;
     }
-    .day-name { color: #3730a3; }
-    .day-date { color: var(--text-secondary); font-weight: 400; font-size: 11px; }
-    .day-stats { margin-left: auto; font-size: 10px; color: var(--text-muted); }
 
+    .day-header:first-child {
+      border-top: none;
+    }
+
+    .day-name {
+      font-weight: 700;
+      font-size: 14px;
+      color: #3730a3;
+    }
+
+    .day-date {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .day-stats {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Etykieta slotu */
     .slot-label {
       background: #f8fafc;
-      padding: 6px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       border-right: 2px solid var(--border-color);
+      min-height: 100px;
     }
-    .slot-label.second-shift { background: #e2e8f0; }
-    .slot-time { font-weight: 600; font-size: 12px; }
-    .slot-time-end { font-size: 9px; color: var(--text-muted); }
+
+    .slot-label.shift2 {
+      background: #e2e8f0;
+    }
+
+    .slot-time {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .slot-time-end {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
     .shift-badge {
-      font-size: 8px;
-      padding: 1px 4px;
+      font-size: 9px;
+      padding: 2px 6px;
       border-radius: 3px;
-      margin-top: 3px;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .shift-badge.shift1 {
       background: #dbeafe;
       color: #1e40af;
     }
-    .shift-badge.second { background: #94a3b8; color: white; }
 
+    .shift-badge.shift2 {
+      background: #64748b;
+      color: white;
+    }
+
+    /* Komórka siatki */
     .grid-cell {
       background: var(--bg-card);
-      min-height: 140px;
-      padding: 4px;
-    }
-    .grid-cell.second-shift { background: #f1f5f9; }
-    .grid-cell.empty {
-      background: repeating-linear-gradient(45deg, transparent, transparent 8px, #f1f5f9 8px, #f1f5f9 16px);
-    }
-    .grid-cell.empty.second-shift {
-      background: repeating-linear-gradient(45deg, #e2e8f0, #e2e8f0 8px, #cbd5e1 8px, #cbd5e1 16px);
-    }
-
-    .session-card {
-      background: var(--bg-card);
-      border-radius: 8px;
-      padding: 10px;
-      height: 100%;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      border-left: 4px solid var(--twr1-color);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      min-height: 100px;
+      padding: 6px;
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
+
+    .grid-cell.shift2 {
+      background: var(--shift2-bg);
+    }
+
+    .grid-cell.empty {
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 8px,
+        #f1f5f9 8px,
+        #f1f5f9 16px
+      );
+      cursor: pointer;
+      position: relative;
+    }
+
+    .grid-cell.empty:hover {
+      background: #e0e7ff;
+    }
+
+    .grid-cell.empty::after {
+      content: '+ Dodaj';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .grid-cell.empty:hover::after {
+      opacity: 1;
+    }
+
+    /* ========== KARTA SESJI ========== */
+    .session-card {
+      background: var(--bg-card);
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-left: 4px solid var(--accent-blue);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      flex: 1;
+      min-height: 88px;
+    }
+
     .session-card:hover {
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
-    .session-card.second-shift {
-      background: #f1f5f9;
-      border-left-color: #64748b;
-    }
+
     .session-card.has-warning {
       background: #fffbeb;
       border-left-color: var(--accent-orange);
     }
+
     .session-card.has-error {
       background: #fef2f2;
       border-left-color: var(--accent-red);
+    }
+
+    .session-card.shift2 {
+      background: #f8fafc;
+      border-left-color: #64748b;
     }
 
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 6px;
+      margin-bottom: 6px;
     }
-    .card-badges { display: flex; gap: 3px; flex-shrink: 0; flex-wrap: wrap; }
+
+    .card-category {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .card-badges {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+
     .badge {
       font-size: 9px;
       padding: 2px 5px;
       border-radius: 3px;
       font-weight: 600;
     }
+
     .badge.warning { background: var(--accent-orange); color: white; }
     .badge.error { background: var(--accent-red); color: white; }
-    .badge.has-b { background: #8b5cf6; color: white; }
-    .badge.shift2 { background: #64748b; color: white; }
+    .badge.has-b { background: var(--accent-purple); color: white; }
 
+    /* Sekcja Trainee */
     .trainee-section {
       background: #f0f9ff;
       border-radius: 6px;
       padding: 8px;
+      margin-bottom: 6px;
     }
+
     .trainee-section.trainee-b {
       background: #faf5ff;
-      margin-top: 4px;
     }
+
+    .trainee-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
     .trainee-label {
       font-size: 9px;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.3px;
-      margin-bottom: 3px;
     }
+
+    .trainee-phase {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      background: #dbeafe;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
     .trainee-name {
       font-weight: 600;
       font-size: 12px;
       color: var(--text-primary);
-      word-break: break-word;
+      margin-bottom: 4px;
     }
+
     .trainee-exercise {
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-top: 4px;
     }
+
     .exercise-num {
-      background: #dbeafe;
-      color: #1e40af;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .exercise-progress {
       font-size: 10px;
       color: var(--text-secondary);
     }
+
     .progress-bar {
       flex: 1;
       height: 4px;
@@ -221,404 +406,1088 @@
       border-radius: 2px;
       overflow: hidden;
     }
+
     .progress-fill {
       height: 100%;
       background: var(--accent-green);
-      border-radius: 2px;
+      transition: width 0.3s;
     }
 
+    .progress-fill.complete {
+      background: var(--accent-blue);
+    }
+
+    .exercise-progress {
+      font-size: 9px;
+      color: var(--text-muted);
+      min-width: 35px;
+      text-align: right;
+    }
+
+    /* Instruktorzy */
     .instructors-section {
       margin-top: auto;
       padding-top: 6px;
       border-top: 1px dashed var(--border-color);
     }
+
     .instructors-label {
       font-size: 9px;
       color: var(--text-muted);
       text-transform: uppercase;
-      margin-bottom: 2px;
-    }
-    .instructors-list {
-      font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.3;
-    }
-    .instructor-chip {
-      display: inline-block;
-      background: #fef3c7;
-      color: #92400e;
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-size: 10px;
-      margin: 1px 2px 1px 0;
+      letter-spacing: 0.3px;
+      margin-bottom: 3px;
     }
 
-    .detail-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.3);
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s;
-      z-index: 999;
+    .instructors-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
     }
-    .detail-overlay.open { opacity: 1; visibility: visible; }
-    .detail-panel {
+
+    .instructor-chip {
+      font-size: 10px;
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    /* ========== MODAL ========== */
+    .modal-overlay {
+      display: none;
       position: fixed;
       top: 0;
-      right: -400px;
-      width: 400px;
-      height: 100vh;
-      background: var(--bg-card);
-      box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-      transition: right 0.3s;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
       z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open {
       display: flex;
-      flex-direction: column;
     }
-    .detail-panel.open { right: 0; }
-    .panel-header {
-      padding: 16px;
-      background: linear-gradient(135deg, var(--twr1-color), #60a5fa);
+
+    .modal {
+      background: var(--bg-card);
+      border-radius: 12px;
+      width: 95%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #1e293b, #334155);
       color: white;
-      position: relative;
-    }
-    .panel-close {
-      position: absolute;
-      top: 12px; right: 12px;
-      width: 28px; height: 28px;
-      border: none;
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    .panel-title { font-size: 16px; font-weight: 600; }
-    .panel-subtitle { font-size: 12px; opacity: 0.9; margin-top: 2px; }
-    .panel-content { flex: 1; overflow-y: auto; padding: 16px; }
-    .panel-section { margin-bottom: 16px; }
-    .panel-section-title {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-    .panel-row {
       display: flex;
       justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 13px;
+      align-items: center;
     }
-    .panel-label { color: var(--text-secondary); }
-    .panel-value { font-weight: 500; text-align: right; }
-    .panel-value.error { color: var(--accent-red); }
-    .panel-value.warning { color: var(--accent-orange); }
-    .panel-footer {
-      padding: 12px 16px;
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .modal-subtitle {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    .modal-close {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      max-height: calc(90vh - 140px);
+    }
+
+    .form-section {
+      margin-bottom: 20px;
+    }
+
+    .form-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-row.single {
+      grid-template-columns: 1fr;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .form-label.required::after {
+      content: ' *';
+      color: var(--accent-red);
+    }
+
+    .form-input, .form-select {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      width: 100%;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+    }
+
+    .form-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .form-checkbox-label {
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .validation-warning {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .validation-warning-icon {
+      font-size: 16px;
+    }
+
+    .validation-warning-text {
+      font-size: 12px;
+      color: #92400e;
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      background: #f8fafc;
       border-top: 1px solid var(--border-color);
       display: flex;
-      gap: 10px;
+      justify-content: space-between;
+      gap: 12px;
     }
-    .btn {
-      flex: 1;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-    }
-    .btn-primary { background: var(--twr1-color); color: white; }
-    .btn-secondary { background: #f1f5f9; color: var(--text-primary); }
 
+    .modal-footer-left {
+      display: flex;
+      gap: 8px;
+    }
+
+    .modal-footer-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-danger {
+      background: #fef2f2;
+      color: var(--accent-red);
+      border: 1px solid #fecaca;
+    }
+
+    .btn-danger:hover {
+      background: #fee2e2;
+    }
+
+    .btn-success {
+      background: var(--accent-green);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #16a34a;
+    }
+
+    /* ========== EMPTY STATE ========== */
     .empty-state {
-      grid-column: 1 / -1;
-      padding: 50px 20px;
       text-align: center;
-      background: var(--bg-card);
+      padding: 60px 20px;
+      color: var(--text-muted);
     }
-    .empty-state h3 { font-size: 15px; margin-bottom: 4px; }
-    .empty-state p { font-size: 12px; color: var(--text-secondary); }
+
+    .empty-state h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state p {
+      font-size: 13px;
+    }
+
+    /* ========== LOADING ========== */
     .loading {
-      grid-column: 1 / -1;
-      padding: 50px;
-      text-align: center;
-      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-muted);
     }
-    .spinner {
-      width: 28px; height: 28px;
-      border: 3px solid #e2e8f0;
-      border-top-color: var(--twr1-color);
+
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-blue);
       border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      margin: 0 auto 10px;
+      animation: spin 1s linear infinite;
+      margin-right: 12px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
+  <!-- Kontrolki -->
   <div class="controls">
     <div class="control-group">
-      <span class="control-label">Tydzień:</span>
-      <select id="week-filter" onchange="applyFilters()"><option value="">Wszystkie</option></select>
+      <span class="control-label">Tydzień</span>
+      <select id="week-filter" onchange="applyFilters()">
+        <option value="">Wszystkie</option>
+      </select>
     </div>
+    
     <div class="control-group">
-      <span class="control-label">Dzień:</span>
-      <select id="day-filter" onchange="applyFilters()"><option value="">Wszystkie</option></select>
+      <span class="control-label">Dzień</span>
+      <select id="day-filter" onchange="applyFilters()">
+        <option value="">Wszystkie</option>
+      </select>
     </div>
+    
     <div class="control-group">
-      <span class="control-label">Trainee:</span>
-      <select id="trainee-filter" onchange="applyFilters()"><option value="">Wszyscy</option></select>
+      <span class="control-label">Trainee</span>
+      <select id="trainee-filter" onchange="applyFilters()">
+        <option value="">Wszyscy</option>
+      </select>
     </div>
+
+    <button class="btn btn-secondary" onclick="refreshData()">🔄 Odśwież</button>
+
     <div class="stats">
-      <div class="stat"><span class="stat-dot total"></span><span id="stat-total">0</span> sesji</div>
-      <div class="stat"><span class="stat-dot warning"></span><span id="stat-warnings">0</span> ostrzeżeń</div>
-      <div class="stat"><span class="stat-dot error"></span><span id="stat-errors">0</span> błędów</div>
+      <div class="stat">
+        <span class="stat-dot total"></span>
+        <span>Sesji: <strong id="stat-total">0</strong></span>
+      </div>
+      <div class="stat">
+        <span class="stat-dot warning"></span>
+        <span>Duplikaty: <strong id="stat-warnings">0</strong></span>
+      </div>
+      <div class="stat">
+        <span class="stat-dot error"></span>
+        <span>8h: <strong id="stat-errors">0</strong></span>
+      </div>
     </div>
+
+    <span id="status" class="status-indicator status-ok">Gotowy</span>
   </div>
 
+  <!-- Siatka -->
   <div class="grid-wrapper">
-    <div class="schedule-grid" id="schedule-grid">
-      <div class="loading"><div class="spinner"></div><p>Ładowanie...</p></div>
+    <div id="schedule-grid" class="schedule-grid">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        Ładowanie danych...
+      </div>
     </div>
   </div>
 
-  <div class="detail-overlay" id="detail-overlay" onclick="closePanel()"></div>
-  <div class="detail-panel" id="detail-panel">
-    <button class="panel-close" onclick="closePanel()">×</button>
-    <div class="panel-header">
-      <div class="panel-title" id="panel-title">Szczegóły</div>
-      <div class="panel-subtitle" id="panel-subtitle"></div>
-    </div>
-    <div class="panel-content" id="panel-content"></div>
-    <div class="panel-footer">
-      <button class="btn btn-secondary" onclick="closePanel()">Zamknij</button>
-      <button class="btn btn-primary" onclick="goToRecord()">Edytuj</button>
+  <!-- Modal edycji -->
+  <div id="modal-overlay" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modal-title">Edycja sesji</div>
+          <div class="modal-subtitle" id="modal-subtitle"></div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div id="modal-warnings"></div>
+
+        <div class="form-section">
+          <div class="form-section-title">Czas i miejsce</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <select id="edit-data" class="form-select" disabled>
+                <!-- Wypełniane dynamicznie -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Slot czasowy</label>
+              <select id="edit-slot" class="form-select" disabled>
+                <!-- Wypełniane dynamicznie -->
+              </select>
+            </div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Kategoria sesji</label>
+              <select id="edit-kategoria" class="form-select">
+                <option value="">— wybierz —</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Trainee A (główny)</div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label required">Trainee</label>
+              <select id="edit-traineeA" class="form-select">
+                <option value="">— wybierz —</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Trainee B (opcjonalnie)</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Trainee</label>
+              <select id="edit-traineeB" class="form-select">
+                <option value="">— brak —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Aktywny (C)</label>
+              <div class="form-checkbox-group">
+                <input type="checkbox" id="edit-c" class="form-checkbox">
+                <label for="edit-c" class="form-checkbox-label">Zalicz ćwiczenie dla Trainee B</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Instruktorzy</div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label class="form-label">Przypisani instruktorzy</label>
+              <select id="edit-instruktorzy" class="form-select" multiple size="4">
+                <!-- Wypełniane dynamicznie -->
+              </select>
+              <small style="color: var(--text-muted); font-size: 10px; margin-top: 4px;">
+                Przytrzymaj Ctrl/Cmd aby wybrać wielu
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="modal-footer-left">
+          <button class="btn btn-danger" onclick="clearForm()">🗑️ Wyczyść pola</button>
+        </div>
+        <div class="modal-footer-right">
+          <button class="btn btn-secondary" onclick="closeModal()">Anuluj</button>
+          <button class="btn btn-success" onclick="saveRecord()">💾 Zapisz</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
-    const STATIONS = [
-      { id: 1, name: 'TWR 1' },
-      { id: 2, name: 'TWR 2' },
-      { id: 3, name: 'TWR 3' },
-      { id: 4, name: 'TWR 4' },
-      { id: 5, name: 'TWR 5' },
-      { id: 6, name: 'TWR 6' }
-    ];
-    const SECOND_SHIFT_START = '15:15';
+    // ============================================
+    // KONFIGURACJA
+    // ============================================
+    const SECOND_SHIFT_START = '14:00'; // Od tej godziny = II zmiana
+    const DAY_ORDER = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
 
+    // ============================================
+    // STAN APLIKACJI
+    // ============================================
     let allRecords = [];
     let filteredRecords = [];
-    let selectedRecord = null;
-    let weeks = new Set();
-    let days = new Set();
-    let trainees = new Map();
+    let currentEditRecord = null;
 
-    grist.ready({ requiredAccess: 'full' });
+    // Dane pomocnicze z powiązanych tabel
+    let traineeOptions = [];    // z Trainee_DB
+    let instructorOptions = []; // z R_Instr_Ewidencja
+    let categoryOptions = [];   // z Kategorie
+    let slotOptions = [];       // z Sesje
+    let dataOptions = [];       // z Kalendarz_DniPracy
 
-    grist.onRecords(function(records) {
-      allRecords = records.map(normalizeRecord);
+    // Mapy do szybkiego lookup
+    const traineeMap = new Map();
+    const instructorMap = new Map();
+
+    // Filtry - unikalne wartości
+    const weeks = new Set();
+    const days = new Set();
+    const trainees = new Map();
+
+    // ============================================
+    // INICJALIZACJA GRIST
+    // ============================================
+    grist.ready({
+      requiredAccess: 'full'  // Wymagane do edycji!
+      // BEZ columns: {} - widget dostaje WSZYSTKIE kolumny automatycznie
+    });
+
+    // Nasłuchuj na zmiany rekordów
+    grist.onRecords(async (records) => {
+      console.log('=== onRecords ===');
+      console.log('Otrzymano rekordów:', records.length);
+      if (records.length > 0) {
+        console.log('Przykładowy rekord:', JSON.stringify(records[0], null, 2));
+        console.log('Dostępne kolumny:', Object.keys(records[0]));
+      }
+      
+      allRecords = records.map(r => mapRecord(r));
       processData();
       applyFilters();
     });
 
-    function normalizeRecord(rec) {
+    // Ładowanie danych pomocniczych przy starcie
+    loadReferenceData();
+
+    // ============================================
+    // ŁADOWANIE DANYCH REFERENCYJNYCH
+    // ============================================
+    async function loadReferenceData() {
+      try {
+        updateStatus('Ładowanie...', 'saving');
+
+        // Pobierz listę dostępnych tabel
+        let tables = [];
+        try {
+          tables = await grist.docApi.listTables();
+          console.log('Dostępne tabele:', tables);
+        } catch (e) {
+          console.warn('Nie można pobrać listy tabel (wymaga full access):', e.message);
+          // Kontynuuj bez danych referencyjnych
+          updateStatus('Tryb read-only', 'ok');
+          return;
+        }
+
+        // Trainee_DB
+        if (tables.includes('Trainee_DB')) {
+          const traineeData = await grist.docApi.fetchTable('Trainee_DB');
+          traineeOptions = parseTableData(traineeData);
+          traineeOptions.forEach(t => {
+            traineeMap.set(t.id, t);
+          });
+          console.log('Załadowano Trainee_DB:', traineeOptions.length);
+        }
+
+        // R_Instr_Ewidencja
+        if (tables.includes('R_Instr_Ewidencja')) {
+          const instrData = await grist.docApi.fetchTable('R_Instr_Ewidencja');
+          instructorOptions = parseTableData(instrData);
+          instructorOptions.forEach(i => {
+            instructorMap.set(i.id, i);
+          });
+          console.log('Załadowano R_Instr_Ewidencja:', instructorOptions.length);
+        }
+
+        // Kategorie
+        if (tables.includes('Kategorie')) {
+          const katData = await grist.docApi.fetchTable('Kategorie');
+          categoryOptions = parseTableData(katData);
+          console.log('Załadowano Kategorie:', categoryOptions.length);
+        }
+
+        // Sesje (sloty czasowe)
+        if (tables.includes('Sesje')) {
+          const slotData = await grist.docApi.fetchTable('Sesje');
+          slotOptions = parseTableData(slotData);
+          console.log('Załadowano Sesje:', slotOptions.length);
+        }
+
+        // Kalendarz_DniPracy
+        if (tables.includes('Kalendarz_DniPracy')) {
+          const dataData = await grist.docApi.fetchTable('Kalendarz_DniPracy');
+          dataOptions = parseTableData(dataData);
+          console.log('Załadowano Kalendarz_DniPracy:', dataOptions.length);
+        }
+
+        // Wypełnij selecty w modalu
+        populateModalSelects();
+        updateStatus('Gotowy', 'ok');
+
+      } catch (e) {
+        console.error('Błąd ładowania danych referencyjnych:', e);
+        updateStatus('Błąd ładowania', 'error');
+      }
+    }
+
+    function parseTableData(tableData) {
+      if (!tableData || !tableData.id) return [];
+      const result = [];
+      const len = tableData.id.length;
+      for (let i = 0; i < len; i++) {
+        const row = { id: tableData.id[i] };
+        for (const col in tableData) {
+          if (col !== 'id' && Array.isArray(tableData[col])) {
+            row[col] = tableData[col][i];
+          }
+        }
+        result.push(row);
+      }
+      return result;
+    }
+
+    function populateModalSelects() {
+      // Trainee A i B
+      const traineeHTML = '<option value="">— wybierz —</option>' +
+        traineeOptions
+          .filter(t => t.Dostepny !== false) // Tylko dostępni
+          .map(t => {
+            const label = t.Trainee_NazwiskoImie || t.ID_Trainee_Faza || `#${t.id}`;
+            const faza = t.Faza ? ` (F${getRefId(t.Faza)})` : '';
+            return `<option value="${t.id}">${label}${faza}</option>`;
+          }).join('');
+
+      document.getElementById('edit-traineeA').innerHTML = traineeHTML;
+      document.getElementById('edit-traineeB').innerHTML = 
+        '<option value="">— brak —</option>' + traineeHTML.replace('— wybierz —', '— brak —');
+
+      // Instruktorzy
+      const instrHTML = instructorOptions.map(i => {
+        const label = `${i.Imie || ''} ${i.Nazwisko || ''}`.trim() || i.ID2 || `#${i.id}`;
+        return `<option value="${i.id}">${label}</option>`;
+      }).join('');
+      document.getElementById('edit-instruktorzy').innerHTML = instrHTML;
+
+      // Kategorie
+      const katHTML = '<option value="">— wybierz —</option>' +
+        categoryOptions.map(k => {
+          const label = k.KategoriaSesji || `#${k.id}`;
+          return `<option value="${k.id}">${label}</option>`;
+        }).join('');
+      document.getElementById('edit-kategoria').innerHTML = katHTML;
+    }
+
+    // ============================================
+    // MAPOWANIE REKORDÓW
+    // ============================================
+    function mapRecord(rec) {
+      if (!rec) return null;
+
+      // Debug - pokaż co mamy w rekordzie
+      // console.log('Mapowanie rekordu:', rec.id, 'Data:', rec.Data, 'Slot:', rec.Slot);
+
       return {
         id: rec.id,
-        dzienPL: rec.Data_DzienPL || '',
-        tydzien: rec.Data_Tydzien || '',
+        
+        // Referencje - Grist przekazuje je jako liczby (ID) lub obiekty
+        data: getRefId(rec.Data),
+        slot: getRefId(rec.Slot),
+        traineeA: getRefId(rec.TWR1_TraineeA),
+        traineeB: getRefId(rec.TWR1_TraineeB),
+        instruktorzy: getRefListIds(rec.TWR1_Instr),
+        kategoria: getRefId(rec.TWR_Kat),
+        c: rec.C || false,
+
+        // Wartości z formuł (tylko do odczytu)
         godzOd: rec.Slot_Godz_od || '',
         godzDo: rec.Slot_Godz_do || '',
-        traineeA: rec.TWR1_TraineeA,
-        traineeA_nazwa: rec.TraineeA_Nazwa || '',
-        traineeB: rec.TWR1_TraineeB,
-        traineeB_nazwa: rec.TraineeB_Nazwa || '',
-        instr_lista: rec.Instr_Lista || '',
-        c: rec.C || false,
+        dzienPL: rec.Data_DzienPL || '',
+        tydzien: rec.Data_Tydzien || '',
         exNrA: rec.exNrA,
         exNrB: rec.exNrB,
         wymagane: rec.TWR1_Trainee1_Wymagane || 0,
         duplikaty: rec.TraineeDuplikaty || false,
         narusza8hA: rec.TraineeA_Narusza8h || false,
         narusza8hB: rec.TraineeB_Narusza8h || false,
-        station: 1
+        traineeA_nazwa: rec.TraineeA_Nazwa || '',
+        traineeB_nazwa: rec.TraineeB_Nazwa || '',
+        traineeA_faza: rec.TWR1_TraineeA_Faza || '',
+        traineeB_faza: rec.TWR1_TraineeB_Faza || '',
+        instr_lista: rec.Instr_lista || '',
+        kat_nazwa: rec.Kat_Nazwa || '',
       };
     }
 
-    function isSecondShift(t) { return t && t >= SECOND_SHIFT_START; }
+    function getRefId(value) {
+      if (!value) return null;
+      if (typeof value === 'number') return value > 0 ? value : null;
+      if (value && typeof value === 'object' && value.id) return value.id;
+      return null;
+    }
 
+    function getRefListIds(value) {
+      if (!value) return [];
+      if (Array.isArray(value)) {
+        // Może być ['L', id1, id2, ...] lub [id1, id2, ...]
+        if (value[0] === 'L') {
+          return value.slice(1).filter(v => typeof v === 'number' && v > 0);
+        }
+        return value.filter(v => typeof v === 'number' && v > 0);
+      }
+      return [];
+    }
+
+    // ============================================
+    // PRZETWARZANIE DANYCH
+    // ============================================
     function processData() {
-      weeks.clear(); days.clear(); trainees.clear();
+      weeks.clear();
+      days.clear();
+      trainees.clear();
+
       allRecords.forEach(r => {
+        if (!r) return;
         if (r.tydzien) weeks.add(r.tydzien);
         if (r.dzienPL) days.add(r.dzienPL);
         if (r.traineeA) trainees.set(r.traineeA, r.traineeA_nazwa || `#${r.traineeA}`);
         if (r.traineeB) trainees.set(r.traineeB, r.traineeB_nazwa || `#${r.traineeB}`);
       });
+
       updateFilterOptions();
     }
 
     function updateFilterOptions() {
-      const wSel = document.getElementById('week-filter'), wVal = wSel.value;
-      wSel.innerHTML = '<option value="">Wszystkie</option>';
-      [...weeks].sort().forEach(w => wSel.innerHTML += `<option value="${w}" ${w===wVal?'selected':''}>${w}</option>`);
+      // Tydzień
+      const wSel = document.getElementById('week-filter');
+      const wVal = wSel.value;
+      wSel.innerHTML = '<option value="">Wszystkie</option>' +
+        [...weeks].sort().map(w => 
+          `<option value="${w}" ${w === wVal ? 'selected' : ''}>${w}</option>`
+        ).join('');
 
-      const dSel = document.getElementById('day-filter'), dVal = dSel.value;
-      const dayOrd = ['Pn','Wt','Śr','Cz','Pt','So','Nd'];
-      dSel.innerHTML = '<option value="">Wszystkie</option>';
-      [...days].sort((a,b)=>dayOrd.indexOf(a)-dayOrd.indexOf(b)).forEach(d => dSel.innerHTML += `<option value="${d}" ${d===dVal?'selected':''}>${d}</option>`);
+      // Dzień
+      const dSel = document.getElementById('day-filter');
+      const dVal = dSel.value;
+      dSel.innerHTML = '<option value="">Wszystkie</option>' +
+        [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b)).map(d =>
+          `<option value="${d}" ${d === dVal ? 'selected' : ''}>${d}</option>`
+        ).join('');
 
-      const tSel = document.getElementById('trainee-filter'), tVal = tSel.value;
-      tSel.innerHTML = '<option value="">Wszyscy</option>';
-      [...trainees.entries()].sort((a,b)=>a[0]-b[0]).forEach(([id,n]) => tSel.innerHTML += `<option value="${id}" ${String(id)===tVal?'selected':''}>${n}</option>`);
+      // Trainee
+      const tSel = document.getElementById('trainee-filter');
+      const tVal = tSel.value;
+      tSel.innerHTML = '<option value="">Wszyscy</option>' +
+        [...trainees.entries()].sort((a, b) => a[1].localeCompare(b[1])).map(([id, name]) =>
+          `<option value="${id}" ${String(id) === tVal ? 'selected' : ''}>${name}</option>`
+        ).join('');
     }
 
+    // ============================================
+    // FILTROWANIE
+    // ============================================
     function applyFilters() {
       const wF = document.getElementById('week-filter').value;
       const dF = document.getElementById('day-filter').value;
       const tF = document.getElementById('trainee-filter').value;
+
       filteredRecords = allRecords.filter(r => {
+        if (!r) return false;
         if (wF && r.tydzien !== wF) return false;
         if (dF && r.dzienPL !== dF) return false;
-        if (tF) { const t = parseInt(tF); if (r.traineeA !== t && r.traineeB !== t) return false; }
+        if (tF) {
+          const t = parseInt(tF);
+          if (r.traineeA !== t && r.traineeB !== t) return false;
+        }
         return true;
       });
+
+      // Statystyki
       document.getElementById('stat-total').textContent = filteredRecords.length;
-      document.getElementById('stat-warnings').textContent = filteredRecords.filter(r=>r.duplikaty).length;
-      document.getElementById('stat-errors').textContent = filteredRecords.filter(r=>r.narusza8hA||r.narusza8hB).length;
+      document.getElementById('stat-warnings').textContent = 
+        filteredRecords.filter(r => r.duplikaty).length;
+      document.getElementById('stat-errors').textContent = 
+        filteredRecords.filter(r => r.narusza8hA || r.narusza8hB).length;
+
       render();
     }
 
+    // ============================================
+    // RENDEROWANIE
+    // ============================================
     function render() {
       const grid = document.getElementById('schedule-grid');
+
+      // Debug info
+      console.log('=== RENDER ===');
+      console.log('filteredRecords:', filteredRecords.length);
+      if (filteredRecords.length > 0) {
+        const sample = filteredRecords[0];
+        console.log('Przykład po mapowaniu:', {
+          id: sample.id,
+          dzienPL: sample.dzienPL,
+          tydzien: sample.tydzien,
+          godzOd: sample.godzOd,
+          traineeA: sample.traineeA,
+          traineeA_nazwa: sample.traineeA_nazwa
+        });
+      }
+
       if (!filteredRecords.length) {
-        grid.innerHTML = '<div class="empty-state"><h3>Brak sesji</h3><p>Zmień filtry lub dodaj dane</p></div>';
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <h3>Brak sesji do wyświetlenia</h3>
+            <p>Zmień filtry lub sprawdź czy tabela GRAFIK ma dane.</p>
+            <p style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">
+              Sprawdź konsolę (F12) aby zobaczyć diagnostykę.
+            </p>
+          </div>
+        `;
         return;
       }
 
-      let html = '<div class="grid-header"><div class="header-cell corner">Slot</div>';
-      STATIONS.forEach(s => html += `<div class="header-cell">${s.name}</div>`);
-      html += '</div>';
+      let html = '';
 
-      const dayOrd = ['Pn','Wt','Śr','Cz','Pt','So','Nd'];
-      const uDays = [...new Set(filteredRecords.map(r=>r.dzienPL))].filter(Boolean).sort((a,b)=>dayOrd.indexOf(a)-dayOrd.indexOf(b));
+      // Grupuj po dniach
+      const uniqueDays = [...new Set(filteredRecords.map(r => r.dzienPL))]
+        .filter(Boolean)
+        .sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
 
-      uDays.forEach(day => {
-        const dRecs = filteredRecords.filter(r=>r.dzienPL===day);
-        const wk = dRecs[0]?.tydzien || '';
-        html += `<div class="day-header"><span class="day-name">${day}</span><span class="day-date">Tydz. ${wk}</span><span class="day-stats">${dRecs.length} sesji</span></div>`;
+      uniqueDays.forEach(day => {
+        const dayRecords = filteredRecords.filter(r => r.dzienPL === day);
+        const dayWeek = dayRecords[0]?.tydzien || '';
 
-        const slots = [...new Set(dRecs.map(r=>r.godzOd))].filter(Boolean).sort();
-        slots.forEach(slot => {
-          const sr = dRecs.find(r=>r.godzOd===slot);
-          const s2 = isSecondShift(slot);
-          const sc = s2 ? 'second-shift' : '';
+        // Nagłówek dnia
+        html += `
+          <div class="day-header">
+            <span class="day-name">${day}</span>
+            <span class="day-date">Tydzień ${dayWeek}</span>
+            <span class="day-stats">${dayRecords.length} sesji</span>
+          </div>
+        `;
 
-          html += `<div class="slot-label ${sc}"><span class="slot-time">${slot}</span><span class="slot-time-end">${sr?.godzDo||''}</span><span class="shift-badge ${s2?'second':''}">${s2?'II':'I'}</span></div>`;
+        // Unikalne sloty dla tego dnia
+        const daySlots = [...new Set(dayRecords.map(r => r.godzOd))]
+          .filter(Boolean)
+          .sort();
 
-          STATIONS.forEach(st => {
-            const cell = dRecs.filter(r=>r.godzOd===slot && (r.station||1)===st.id);
-            html += cell.length ? renderCard(cell[0], s2) : `<div class="grid-cell empty ${sc}"></div>`;
-          });
+        daySlots.forEach(slot => {
+          const slotRecords = dayRecords.filter(r => r.godzOd === slot);
+          const isShift2 = isSecondShift(slot);
+          const shiftClass = isShift2 ? 'shift2' : '';
+          const godzDo = slotRecords[0]?.godzDo || '';
+
+          // Etykieta slotu
+          html += `
+            <div class="slot-label ${shiftClass}">
+              <span class="slot-time">${slot}</span>
+              <span class="slot-time-end">${godzDo}</span>
+              <span class="shift-badge ${isShift2 ? 'shift2' : 'shift1'}">${isShift2 ? 'II' : 'I'}</span>
+            </div>
+          `;
+
+          // Komórka z kartami sesji
+          if (slotRecords.length > 0) {
+            html += `<div class="grid-cell ${shiftClass}">`;
+            slotRecords.forEach(r => {
+              html += renderCard(r, isShift2);
+            });
+            html += '</div>';
+          } else {
+            html += `<div class="grid-cell empty ${shiftClass}" onclick="openNewRecord('${day}', '${slot}')"></div>`;
+          }
         });
       });
+
       grid.innerHTML = html;
     }
 
-    function renderCard(r, s2) {
-      const sc = s2 ? 'second-shift' : '';
-      const hasW = r.duplikaty, hasE = r.narusza8hA || r.narusza8hB, hasB = r.traineeB && r.c;
-      let cc = `session-card ${sc}`;
-      if (hasE) cc += ' has-error';
-      else if (hasW) cc += ' has-warning';
+    function renderCard(r, isShift2) {
+      const hasW = r.duplikaty;
+      const hasE = r.narusza8hA || r.narusza8hB;
+      const hasB = r.traineeB && r.c;
 
-      const prog = r.wymagane > 0 ? Math.min(100, Math.round((r.exNrA/r.wymagane)*100)) : 0;
-      const tA = r.traineeA_nazwa || `#${r.traineeA||'-'}`;
-      const tB = r.traineeB_nazwa || `#${r.traineeB||'-'}`;
-      const instr = r.instr_lista || '—';
+      let cardClass = 'session-card';
+      if (isShift2) cardClass += ' shift2';
+      if (hasE) cardClass += ' has-error';
+      else if (hasW) cardClass += ' has-warning';
 
-      return `<div class="grid-cell ${sc}"><div class="${cc}" onclick="showDetail(${r.id})">
-        <div class="card-header"><div class="card-badges">
-          ${s2?'<span class="badge shift2">II</span>':''}
-          ${hasB?'<span class="badge has-b">+B</span>':''}
-          ${hasW?'<span class="badge warning">!</span>':''}
-          ${hasE?'<span class="badge error">8h</span>':''}
-        </div></div>
-        <div class="trainee-section">
-          <div class="trainee-label">Trainee A</div>
-          <div class="trainee-name">${tA}</div>
-          <div class="trainee-exercise">
-            <span class="exercise-num">Ćw. ${r.exNrA||'-'}</span>
-            <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
-            <span class="exercise-progress">${r.exNrA||0}/${r.wymagane||'-'}</span>
+      const prog = r.wymagane > 0 ? Math.min(100, Math.round((r.exNrA / r.wymagane) * 100)) : 0;
+      const progClass = prog >= 100 ? 'complete' : '';
+
+      const traineeA = r.traineeA_nazwa || `#${r.traineeA || '-'}`;
+      const traineeB = r.traineeB_nazwa || `#${r.traineeB || '-'}`;
+      const fazaA = r.traineeA_faza || '';
+      const fazaB = r.traineeB_faza || '';
+
+      return `
+        <div class="${cardClass}" onclick="openEditModal(${r.id})">
+          <div class="card-header">
+            <span class="card-category">${r.kat_nazwa || 'Brak kategorii'}</span>
+            <div class="card-badges">
+              ${hasB ? '<span class="badge has-b" title="Z Trainee B">+B</span>' : ''}
+              ${hasW ? '<span class="badge warning" title="Duplikat: A=B">!</span>' : ''}
+              ${hasE ? '<span class="badge error" title="Naruszenie reguły 8h">8h</span>' : ''}
+            </div>
+          </div>
+
+          <div class="trainee-section">
+            <div class="trainee-header">
+              <span class="trainee-label">Trainee A</span>
+              ${fazaA ? `<span class="trainee-phase">${fazaA}</span>` : ''}
+            </div>
+            <div class="trainee-name">${traineeA}</div>
+            <div class="trainee-exercise">
+              <span class="exercise-num">Ćw. ${r.exNrA || '-'}</span>
+              <div class="progress-bar">
+                <div class="progress-fill ${progClass}" style="width: ${prog}%"></div>
+              </div>
+              <span class="exercise-progress">${r.exNrA || 0}/${r.wymagane || '-'}</span>
+            </div>
+          </div>
+
+          ${hasB ? `
+            <div class="trainee-section trainee-b">
+              <div class="trainee-header">
+                <span class="trainee-label">Trainee B</span>
+                ${fazaB ? `<span class="trainee-phase">${fazaB}</span>` : ''}
+              </div>
+              <div class="trainee-name">${traineeB}</div>
+              <div class="trainee-exercise">
+                <span class="exercise-num">Ćw. ${r.exNrB || '-'}</span>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="instructors-section">
+            <div class="instructors-label">Instruktorzy</div>
+            <div class="instructors-list">
+              ${formatInstructors(r.instr_lista)}
+            </div>
           </div>
         </div>
-        ${hasB?`<div class="trainee-section trainee-b">
-          <div class="trainee-label">Trainee B</div>
-          <div class="trainee-name">${tB}</div>
-          <div class="trainee-exercise"><span class="exercise-num">Ćw. ${r.exNrB||'-'}</span></div>
-        </div>`:''}
-        <div class="instructors-section">
-          <div class="instructors-label">Instruktorzy</div>
-          <div class="instructors-list">${formatInstr(instr)}</div>
-        </div>
-      </div></div>`;
-    }
-
-    function formatInstr(s) {
-      if (!s || s==='—') return '<span style="color:#94a3b8">—</span>';
-      return s.split(',').map(n=>n.trim()).filter(Boolean).map(n=>`<span class="instructor-chip">${n}</span>`).join('');
-    }
-
-    function showDetail(id) {
-      selectedRecord = filteredRecords.find(r=>r.id===id);
-      if (!selectedRecord) return;
-      const r = selectedRecord;
-      document.getElementById('panel-title').textContent = `Sesja #${r.id}`;
-      document.getElementById('panel-subtitle').textContent = `${r.dzienPL} | ${r.godzOd}-${r.godzDo}`;
-      const tA = r.traineeA_nazwa || `#${r.traineeA||'-'}`;
-      const tB = r.traineeB_nazwa || `#${r.traineeB||'-'}`;
-      const prog = r.wymagane>0 ? Math.round((r.exNrA/r.wymagane)*100) : 0;
-
-      document.getElementById('panel-content').innerHTML = `
-        <div class="panel-section"><div class="panel-section-title">Czas</div>
-          <div class="panel-row"><span class="panel-label">Tydzień</span><span class="panel-value">${r.tydzien||'-'}</span></div>
-          <div class="panel-row"><span class="panel-label">Dzień</span><span class="panel-value">${r.dzienPL||'-'}</span></div>
-          <div class="panel-row"><span class="panel-label">Godziny</span><span class="panel-value">${r.godzOd}-${r.godzDo}</span></div>
-          <div class="panel-row"><span class="panel-label">Zmiana</span><span class="panel-value">${isSecondShift(r.godzOd)?'II':'I'}</span></div>
-        </div>
-        <div class="panel-section"><div class="panel-section-title">Trainee A</div>
-          <div class="panel-row"><span class="panel-label">Nazwa</span><span class="panel-value">${tA}</span></div>
-          <div class="panel-row"><span class="panel-label">Ćwiczenie</span><span class="panel-value">${r.exNrA||'-'}/${r.wymagane||'-'}</span></div>
-          <div class="panel-row"><span class="panel-label">Postęp</span><span class="panel-value">${prog}%</span></div>
-          ${r.narusza8hA?'<div class="panel-row"><span class="panel-label">⚠️</span><span class="panel-value error">Naruszenie 8h</span></div>':''}
-        </div>
-        ${r.traineeB?`<div class="panel-section"><div class="panel-section-title">Trainee B ${r.c?'(akt.)':''}</div>
-          <div class="panel-row"><span class="panel-label">Nazwa</span><span class="panel-value">${tB}</span></div>
-          <div class="panel-row"><span class="panel-label">Ćwiczenie</span><span class="panel-value">${r.exNrB||'-'}</span></div>
-          ${r.narusza8hB?'<div class="panel-row"><span class="panel-label">⚠️</span><span class="panel-value error">Naruszenie 8h</span></div>':''}
-        </div>`:''}
-        <div class="panel-section"><div class="panel-section-title">Instruktorzy</div>
-          <div class="panel-row"><span class="panel-value" style="width:100%">${r.instr_lista||'-'}</span></div>
-        </div>
-        ${r.duplikaty?'<div class="panel-section"><div class="panel-section-title" style="color:var(--accent-orange)">⚠️ Ostrzeżenie</div><div class="panel-row"><span class="panel-label">Duplikat</span><span class="panel-value warning">A=B</span></div></div>':''}
       `;
-      document.getElementById('detail-panel').classList.add('open');
-      document.getElementById('detail-overlay').classList.add('open');
-      grist.setCursorPos({rowId:id});
     }
 
-    function closePanel() {
-      document.getElementById('detail-panel').classList.remove('open');
-      document.getElementById('detail-overlay').classList.remove('open');
+    function formatInstructors(lista) {
+      if (!lista || lista === '—') {
+        return '<span style="color: var(--text-muted)">— brak —</span>';
+      }
+      return lista.split(',')
+        .map(n => n.trim())
+        .filter(Boolean)
+        .map(n => `<span class="instructor-chip">${n}</span>`)
+        .join('');
     }
-    function goToRecord() { if(selectedRecord) grist.setCursorPos({rowId:selectedRecord.id}); }
-    document.addEventListener('keydown', e => { if(e.key==='Escape') closePanel(); });
+
+    function isSecondShift(time) {
+      if (!time) return false;
+      return time >= SECOND_SHIFT_START;
+    }
+
+    // ============================================
+    // MODAL - EDYCJA
+    // ============================================
+    function openEditModal(recordId) {
+      currentEditRecord = allRecords.find(r => r.id === recordId);
+      if (!currentEditRecord) return;
+
+      const r = currentEditRecord;
+
+      document.getElementById('modal-title').textContent = `Edycja sesji #${r.id}`;
+      document.getElementById('modal-subtitle').textContent = 
+        `${r.dzienPL} | ${r.godzOd} - ${r.godzDo} | Tydzień ${r.tydzien}`;
+
+      // Wypełnij formularz
+      document.getElementById('edit-traineeA').value = r.traineeA || '';
+      document.getElementById('edit-traineeB').value = r.traineeB || '';
+      document.getElementById('edit-c').checked = r.c || false;
+      document.getElementById('edit-kategoria').value = r.kategoria || '';
+
+      // Instruktorzy (multi-select)
+      const instrSelect = document.getElementById('edit-instruktorzy');
+      Array.from(instrSelect.options).forEach(opt => {
+        opt.selected = r.instruktorzy.includes(parseInt(opt.value));
+      });
+
+      // Walidacje
+      updateModalWarnings(r);
+
+      // Otwórz modal
+      document.getElementById('modal-overlay').classList.add('open');
+
+      // Powiadom Grist o wyborze
+      grist.setCursorPos({ rowId: recordId });
+    }
+
+    function openNewRecord(day, slot) {
+      // Na razie tylko informacja - tworzenie nowych rekordów wymaga dodatkowej logiki
+      alert(`Tworzenie nowej sesji:\nDzień: ${day}\nSlot: ${slot}\n\nUtwórz rekord bezpośrednio w tabeli GRAFIK.`);
+    }
+
+    function updateModalWarnings(r) {
+      let warnings = [];
+
+      if (r.duplikaty) {
+        warnings.push('⚠️ Trainee A i B są tą samą osobą!');
+      }
+      if (r.narusza8hA) {
+        warnings.push('⚠️ Trainee A narusza regułę 8h odpoczynku');
+      }
+      if (r.narusza8hB) {
+        warnings.push('⚠️ Trainee B narusza regułę 8h odpoczynku');
+      }
+
+      const warningsDiv = document.getElementById('modal-warnings');
+      if (warnings.length > 0) {
+        warningsDiv.innerHTML = `
+          <div class="validation-warning">
+            <span class="validation-warning-icon">⚠️</span>
+            <div class="validation-warning-text">
+              ${warnings.join('<br>')}
+            </div>
+          </div>
+        `;
+      } else {
+        warningsDiv.innerHTML = '';
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      currentEditRecord = null;
+    }
+
+    function closeModalOnOverlay(event) {
+      if (event.target === document.getElementById('modal-overlay')) {
+        closeModal();
+      }
+    }
+
+    function clearForm() {
+      document.getElementById('edit-traineeA').value = '';
+      document.getElementById('edit-traineeB').value = '';
+      document.getElementById('edit-c').checked = false;
+      document.getElementById('edit-kategoria').value = '';
+      
+      const instrSelect = document.getElementById('edit-instruktorzy');
+      Array.from(instrSelect.options).forEach(opt => opt.selected = false);
+    }
+
+    // ============================================
+    // ZAPIS DO GRIST
+    // ============================================
+    async function saveRecord() {
+      if (!currentEditRecord) return;
+
+      const traineeA = parseInt(document.getElementById('edit-traineeA').value) || 0;
+      const traineeB = parseInt(document.getElementById('edit-traineeB').value) || 0;
+      const cValue = document.getElementById('edit-c').checked;
+      const kategoria = parseInt(document.getElementById('edit-kategoria').value) || 0;
+
+      // Instruktorzy (RefList)
+      const instrSelect = document.getElementById('edit-instruktorzy');
+      const selectedInstr = Array.from(instrSelect.selectedOptions).map(opt => parseInt(opt.value));
+
+      // Przygotuj dane do aktualizacji
+      const updates = {
+        TWR1_TraineeA: traineeA,
+        TWR1_TraineeB: traineeB,
+        C: cValue,
+        TWR_Kat: kategoria,
+        // RefList musi być w formacie ['L', id1, id2, ...]
+        TWR1_Instr: selectedInstr.length > 0 ? ['L', ...selectedInstr] : null,
+      };
+
+      try {
+        updateStatus('Zapisywanie...', 'saving');
+
+        await grist.docApi.applyUserActions([
+          ['UpdateRecord', 'GRAFIK', currentEditRecord.id, updates]
+        ]);
+
+        updateStatus('Zapisano ✓', 'ok');
+        closeModal();
+
+        // Dane odświeżą się automatycznie przez onRecords
+        // Ale dla pewności możemy wymusić odświeżenie
+        setTimeout(() => {
+          updateStatus('Gotowy', 'ok');
+        }, 1500);
+
+      } catch (e) {
+        console.error('Błąd zapisu:', e);
+        updateStatus('Błąd: ' + e.message, 'error');
+        alert('Błąd zapisu:\n' + e.message);
+      }
+    }
+
+    // ============================================
+    // POMOCNICZE
+    // ============================================
+    async function refreshData() {
+      updateStatus('Odświeżanie...', 'saving');
+      await loadReferenceData();
+      // Dane z GRAFIK odświeżą się przez onRecords
+    }
+
+    function updateStatus(text, type = 'ok') {
+      const el = document.getElementById('status');
+      el.textContent = text;
+      el.className = 'status-indicator status-' + type;
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
   </script>
 </body>
 </html>
